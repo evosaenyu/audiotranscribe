@@ -7,7 +7,7 @@ from pygame import mixer
 from scripts.clients import openai_client as client 
 import base64
 
-
+import os
 
 def wait_for_unused_file(file_path):
     while True:
@@ -48,13 +48,13 @@ def play_speech_audio(file_path):
         continue
     mixer.music.unload()
 
-def say_something(text):
+def say_something(text,file_path = os.path.join(Path(__file__).parent, "speech.mp3")):
     # Set up the file path for the MP3 file
-    speech_file_path = Path(__file__).parent / "speech.mp3"
+    
 
-    generate_speech_audio(text, speech_file_path)
+    generate_speech_audio(text, file_path)
 
-    play_speech_audio(speech_file_path)
+    play_speech_audio(file_path)
 
 
 def generate_audio_markdown(file_path: str):
