@@ -5,7 +5,6 @@ from pathlib import Path
 from pygame import mixer
 
 from clients import openai_client as client 
-mixer.init()
 
 def wait_for_unused_file(file_path):
     while True:
@@ -33,6 +32,8 @@ def generate_speech_audio(text, file_path):
     response.write_to_file(file_path)
 
 def play_speech_audio(file_path):
+    mixer.init()
+
     # Load the speech audio file
     mixer.music.load(file_path)
 
