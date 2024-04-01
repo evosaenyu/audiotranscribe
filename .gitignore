@@ -10,3 +10,4 @@ pyvenv.cfg
 .venv
 etc/
 *.mp3
+*.wav
