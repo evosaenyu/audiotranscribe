@@ -4,7 +4,10 @@ from pathlib import Path
 
 from pygame import mixer
 
-from clients import openai_client as client 
+from scripts.clients import openai_client as client 
+import base64
+
+
 
 def wait_for_unused_file(file_path):
     while True:
@@ -52,3 +55,15 @@ def say_something(text):
     generate_speech_audio(text, speech_file_path)
 
     play_speech_audio(speech_file_path)
+
+
+def generate_audio_markdown(file_path: str):
+    with open(file_path, "rb") as f:
+        data = f.read()
+        b64 = base64.b64encode(data).decode()
+        md = f"""
+            <audio controls autoplay="true">
+            <source src="data:audio/mp3;base64,{b64}" type="audio/mp3">
+            </audio>
+            """
+        return md 

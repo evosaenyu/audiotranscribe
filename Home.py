@@ -4,8 +4,8 @@ from audio_recorder_streamlit import audio_recorder
 from streamlit.runtime.scriptrunner import add_script_run_ctx
 from streamlit.runtime.scriptrunner.script_run_context import get_script_run_ctx
 import threading
-from clients import openai_client as client 
-import text_to_speech as tts
+from scripts.clients import openai_client as client 
+import scripts.text_to_speech as tts
 
 messages = [
             {"role": "system", 
@@ -46,8 +46,11 @@ def main():
             messages.append({"role":response["role"], "content":response["content"]})
             tts.generate_speech_audio(response["content"], "speech.mp3")
             #Play speech audio on streamlit webapp
-            tts.play_speech_audio("speech.mp3")
-
+            audio_md = tts.generate_audio_markdown("speech.mp3")
+            st.markdown(
+            audio_md,
+            unsafe_allow_html=True,
+        )
         except Exception as e:
             with st.chat_message("assistant"):
                 st.write("Sorry, I did not get that. Please try again.")

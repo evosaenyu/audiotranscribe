@@ -1,4 +1,4 @@
-__pycache__/*
+**/__pycache__/*
 itstime/*
 bin/*
 lib/*
@@ -8,3 +8,5 @@ pyvenv.cfg
 .DS_Store
 .env
 .venv
+etc/
+*.mp3
