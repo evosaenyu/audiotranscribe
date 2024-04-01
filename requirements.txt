@@ -1,0 +1,15 @@
+SpeechRecognition
+torch
+numpy
+openai
+pydub
+pygame
+git+https://github.com/openai/whisper.git
+setuptools
+langchain
+opencv-python
+urllib3
+matplotlib
+python-dotenv
+streamlit
+audio-recorder-streamlit
