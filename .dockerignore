@@ -1,0 +1,10 @@
+__pycache__/*
+itstime/*
+bin/*
+lib/*
+share/* 
+include/* 
+pyvenv.cfg
+.DS_Store
+.env
+.venv
