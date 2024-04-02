@@ -6,11 +6,9 @@ from streamlit.runtime.scriptrunner.script_run_context import get_script_run_ctx
 import threading
 from scripts.clients import openai_client as client 
 import scripts.text_to_speech as tts
+from scripts.agents import StoryAgent 
 
-messages = [
-            {"role": "system", 
-		"content": "You are a children's storyteller embodied in a device that shows images while telling the story. Be creative and come up with interesting plots that teach kids a moral lesson or two." }]
-   
+
 def send_query(messages):
     completion = client.chat.completions.create(
     model="gpt-3.5-turbo",
@@ -19,41 +17,47 @@ def send_query(messages):
     returnMessage = completion.choices[0].message.content
     return {"role":completion.choices[0].message.role, "content":returnMessage} 
 
+def handle_dialogue(input_callback):
+    """take user input, and run the callback everytime we have new user input"""
+    r = sr.Recognizer()
+    with sr.AudioFile("audio.wav") as source:
+        audio_data = r.record(source)
+    try:
+        text = r.recognize_google(audio_data)
+        with st.chat_message("user"):
+            st.write(text)
+        success,response = input_callback(text)
+        return success,response
+    except Exception as e:
+        with st.chat_message("assistant"):
+            st.write(f"Sorry, I did not get that. Please try again.: {e}")    
+    return False,False
+    
+
 def main():
 
     audio_bytes = audio_recorder(text="")
     if audio_bytes:
         with open("audio.wav", "wb") as f:
             f.write(audio_bytes)
-    st.write("Storytime")
+    st.write("give me a theme to write a story about")
     # Adding a textarea
     # Adding the first textarea
-    user_input1 = st.text_area("Enter your text here:")
     #Pass the audio file to speech recognizer
     r = sr.Recognizer()
-    with sr.AudioFile("audio.wav") as source:
-        audio_data = r.record(source)
-        try:
-            text = r.recognize_google(audio_data)
-            #write the text into the user_input1
-            # Display the text
-            with st.chat_message("user"):
-                st.write(text)
-            messages.append({"role": "user", "content": text})
-            response = send_query(messages)
-            with st.chat_message("assistant"):
-                st.write(response["content"])
-            messages.append({"role":response["role"], "content":response["content"]})
-            tts.generate_speech_audio(response["content"], "speech.mp3")
-            #Play speech audio on streamlit webapp
-            audio_md = tts.generate_audio_markdown("speech.mp3")
-            st.markdown(
-            audio_md,
-            unsafe_allow_html=True,
-        )
-        except Exception as e:
-            with st.chat_message("assistant"):
-                st.write("Sorry, I did not get that. Please try again.")
+    agent = StoryAgent()
+    initialized = False 
+    while not initialized:
+        initialized,response= handle_dialogue(agent.initializer_iterate)
+
+    with st.chat_message("assistant"):
+        st.write(' '.join(response['plotDescriptions']))
+
+    tts.generate_speech_audio(' '.join(response['plotDescriptions']),'speech.mp3')
+    audio_md = tts.generate_audio_markdown('speech.mp3')
+    st.markdown(audio_md,unsafe_allow_html=True)
+
+
 
 
     st.divider()

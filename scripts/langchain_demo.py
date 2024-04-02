@@ -8,10 +8,9 @@ import threading
 import cv2
 from matplotlib import pyplot as plt
 from text_to_speech import say_something
-from dotenv import load_dotenv
-import os 
 
-load_dotenv() 
+from scripts.agents import get_story_chain 
+
 
 
 storyDict = [
@@ -19,28 +18,7 @@ storyDict = [
         ]
 
 def demo():
-    response_schemas = [
-        ResponseSchema(
-            name="imageDescriptions", 
-            description="array of descriptions of the image relating to corresponding the plot description point"),
-        ResponseSchema(
-            name="plotDescriptions",
-            description="array of detailed, descriptive narrations of the plot point.",
-        )
-    ]
-    output_parser = StructuredOutputParser.from_response_schemas(response_schemas)
-    format_instructions = output_parser.get_format_instructions()
-    prompt = PromptTemplate(
-        
-        template=
-        """
-        You are a storyteller for children embodied in a device that shows images while telling a story about {theme}. 
-        Be creative and come up with a complete story with a plot twist and moral revelation at the end. Come up with interesting characters and craft a good ending. Limit the number of story responses to 7. \n{format_instructions}""",
-        input_variables=["theme"],
-        partial_variables={"format_instructions": format_instructions},
-    )
-    model = ChatOpenAI(temperature=0,api_key=os.getenv())
-    chain = prompt | model | output_parser
+    chain = get_story_chain()
     response = chain.invoke(storyDict)
     tell_story(response)
 

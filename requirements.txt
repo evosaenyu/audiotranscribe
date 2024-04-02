@@ -13,3 +13,5 @@ matplotlib
 python-dotenv
 streamlit
 audio-recorder-streamlit
+langchain-openai
+watchdog
