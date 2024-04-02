@@ -7,23 +7,21 @@ import threading
 from scripts.clients import openai_client as client 
 import scripts.text_to_speech as tts
 from scripts.agents import StoryAgent 
-
-
-def send_query(messages):
-    completion = client.chat.completions.create(
-    model="gpt-3.5-turbo",
-    messages=messages
-    )
-    returnMessage = completion.choices[0].message.content
-    return {"role":completion.choices[0].message.role, "content":returnMessage} 
+import os 
+import time 
 
 def handle_dialogue(input_callback):
     """take user input, and run the callback everytime we have new user input"""
     r = sr.Recognizer()
-    with sr.AudioFile("audio.wav") as source:
-        audio_data = r.record(source)
+    text = ''
+    if os.path.exists('audio.wav'):
+        try:
+            with sr.AudioFile("audio.wav") as source:
+                audio_data = r.record(source)
+                text = r.recognize_google(audio_data)
+        except:
+            pass 
     try:
-        text = r.recognize_google(audio_data)
         with st.chat_message("user"):
             st.write(text)
         success,response = input_callback(text)
@@ -46,9 +44,12 @@ def main():
     #Pass the audio file to speech recognizer
     r = sr.Recognizer()
     agent = StoryAgent()
-    initialized = False 
+    initialized,response= handle_dialogue(agent.initializer_iterate)
     while not initialized:
+        with st.chat_message("assistant"):
+            st.write(response['question'])
         initialized,response= handle_dialogue(agent.initializer_iterate)
+        time.sleep(0.2)
 
     with st.chat_message("assistant"):
         st.write(' '.join(response['plotDescriptions']))
