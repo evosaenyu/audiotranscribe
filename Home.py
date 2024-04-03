@@ -9,7 +9,7 @@ import scripts.text_to_speech as tts
 from scripts.agents import StoryAgent 
 import os 
 import time 
-from elements.slide_show import slideshow_swipeable
+from components.slide_show import slideshow_swipeable
 
 
 def handle_dialogue(input_callback):
