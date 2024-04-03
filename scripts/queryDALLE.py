@@ -1,10 +1,10 @@
 
 
-from clients import openai_client as client 
+from scripts.clients import openai_client as client 
 
-def generate_image(prompt, n=7):
+def generate_image(prompt, n=1):
     response = client.images.generate(
-    model="dall-e-2",
+    model="dall-e-3",
     prompt=prompt,
     style="natural",
     size="1024x1024",

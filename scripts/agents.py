@@ -2,7 +2,7 @@
 from langchain.output_parsers import ResponseSchema, StructuredOutputParser
 from langchain.prompts import PromptTemplate, ChatPromptTemplate
 from langchain_openai import ChatOpenAI
-
+from scripts.queryDALLE import generate_image
 from dotenv import load_dotenv
 import os 
 
@@ -73,6 +73,17 @@ class StoryAgent:
         response = self.main_chain.invoke([{'theme': theme}])
         self.history = [response]
         return response 
+
+    @staticmethod
+    def get_story_images(image_prompts):
+        prompt = f"""Each of the following descriptions represents a scene in a story. 
+        Generate an image for each of the following descriptions. 
+        Make sure the images are cohesive in style and that characters look consistent. 
+        Return the images in the same order as the scene they are meant to correspond with.
+        Scenes: {[f"\nScene: " + p for p in image_prompts]}"""
+        print(prompt)
+        urls = generate_image(prompt, len(image_prompts))
+        return urls 
      
         
 

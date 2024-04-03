@@ -15,3 +15,4 @@ streamlit
 audio-recorder-streamlit
 langchain-openai
 watchdog
+streamlit-elements
