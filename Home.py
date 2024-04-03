@@ -11,8 +11,9 @@ import os
 import time 
 from elements.slide_show import slideshow_swipeable
 
+
 def handle_dialogue(input_callback):
-    """take user input, and run the callback everytime we have new user input"""
+    """take user input, and run the callback everytime we have new user input""" 
     r = sr.Recognizer()
     text = ''
     if os.path.exists('audio.wav'):
@@ -34,15 +35,23 @@ def handle_dialogue(input_callback):
     
 
 def main():
-
+    print("running main")
     audio_bytes = audio_recorder(text="")
     if audio_bytes:
         with open("audio.wav", "wb") as f:
             f.write(audio_bytes)
+        images = run_agent()
+        slideshow_swipeable(images)
     st.write("give me a theme to write a story about")
     # Adding a textarea
     # Adding the first textarea
     #Pass the audio file to speech recognizer
+    audio_md = tts.generate_audio_markdown('speech.mp3')
+    st.markdown(audio_md,unsafe_allow_html=True)
+    st.divider()
+    btns = st.container()
+
+def run_agent():
     r = sr.Recognizer()
     agent = StoryAgent()
     initialized,response= handle_dialogue(agent.initializer_iterate)
@@ -51,22 +60,12 @@ def main():
             st.write(response['question'])
         initialized,response= handle_dialogue(agent.initializer_iterate)
         time.sleep(0.2)
-
+    print(response['imageDescriptions'])
     images = agent.get_story_images(response['imageDescriptions'])
-    slideshow_swipeable(images)
     with st.chat_message("assistant"):
         st.write(' '.join(response['plotDescriptions']))
-
     tts.generate_speech_audio(' '.join(response['plotDescriptions']),'speech.mp3')
-    audio_md = tts.generate_audio_markdown('speech.mp3')
-    st.markdown(audio_md,unsafe_allow_html=True)
-
-
-
-
-    st.divider()
-
-    btns = st.container()
+    return images
         
 if __name__ == "__main__":
     main()

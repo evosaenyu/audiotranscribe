@@ -51,7 +51,7 @@ class StoryAgent:
         response_schemas = [
             ResponseSchema(
                 name="imageDescriptions", 
-                description="array of descriptions of the image relating to corresponding the plot description point"),
+                description="array of extremely vivid, detailed descriptions of the image relating to corresponding the plot description point."),
             ResponseSchema(
                 name="plotDescriptions",
                 description="array of detailed, descriptive narrations of the plot point.",
@@ -76,13 +76,13 @@ class StoryAgent:
 
     @staticmethod
     def get_story_images(image_prompts):
-        prompt = f"""Each of the following descriptions represents a scene in a story. 
-        Generate an image for each of the following descriptions. 
-        Make sure the images are cohesive in style and that characters look consistent. 
-        Return the images in the same order as the scene they are meant to correspond with.
-        Scenes: {[f"\nScene: " + p for p in image_prompts]}"""
-        print(prompt)
-        urls = generate_image(prompt, len(image_prompts))
+        urls = []
+        for p in image_prompts:
+            prompt = f"""Generate an image for the given prompt.
+            Make sure the image generated is consistent in style and content with the previously generated image.
+            Scene: {p}"""
+            print(p)
+            urls.append(generate_image(prompt)[0])
         return urls 
      
         
