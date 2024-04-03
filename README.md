@@ -8,6 +8,9 @@ Prerequisites
 Installation
 - pip3 install -r requirements.txt
 
+How to Run
+- streamlit run Home.py
+
 Feature List
 - cut off command 
 - Q&A on story 
@@ -23,7 +26,7 @@ TODO
 - print whats being said ✓
 - host output text area with chatgpt responses ✓
 - deploy ✓
-- speak text to audio 
+- speak text to audio ✓
 - langchain-ize to feed inputs to DALL-e
 - image area 
 - sidebar
