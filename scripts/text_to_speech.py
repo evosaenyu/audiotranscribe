@@ -24,7 +24,7 @@ def generate_speech_audio(text, file_path):
     response = client.audio.speech.create(
         model="tts-1",
         voice="nova",
-        speed=0.8,
+        speed=1,
         input=text
     )
 
