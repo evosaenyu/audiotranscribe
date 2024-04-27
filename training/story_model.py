@@ -1,6 +1,7 @@
-import tensorflow as tf
-from tensorflow.keras.models import Sequential
-from tensorflow.keras.layers import Embedding, LSTM, Dense
+import torch
+
+import torch.nn as nn
+import torch.optim as optim
 
 # Define the heuristic functions
 def character_development(input):
@@ -28,40 +29,68 @@ def tension(input):
     pass
 
 # Define the model architecture
-def create_model(vocab_size, embedding_dim, max_length, num_classes):
-    model = Sequential()
-    model.add(Embedding(input_dim=vocab_size, output_dim=embedding_dim, input_length=max_length))
-    model.add(LSTM(units=128))
-    model.add(Dense(units=num_classes, activation='softmax'))
-    return model
+class StoryModel(nn.Module):
+    def __init__(self, vocab_size, embedding_dim, hidden_dim, num_classes):
+        super(StoryModel, self).__init__()
+        self.embedding = nn.Embedding(vocab_size, embedding_dim)
+        self.lstm = nn.LSTM(embedding_dim, hidden_dim)
+        self.fc = nn.Linear(hidden_dim, num_classes)
 
-# Compile the model
-def compile_model(model):
-    model.compile(optimizer='adam', loss='categorical_crossentropy', metrics=['accuracy'])
+    def forward(self, x):
+        embedded = self.embedding(x)
+        output, _ = self.lstm(embedded)
+        output = self.fc(output[:, -1, :])
+        return output
+
+# Create the model
+vocab_size = 10000
+embedding_dim = 128
+hidden_dim = 128
+num_classes = 10
+
+model = StoryModel(vocab_size, embedding_dim, hidden_dim, num_classes)
+
+# Define the loss function and optimizer
+criterion = nn.CrossEntropyLoss()
+optimizer = optim.Adam(model.parameters())
 
 # Train the model
 def train_model(model, X_train, y_train, num_epochs, batch_size):
-    model.fit(X_train, y_train, epochs=num_epochs, batch_size=batch_size)
+    for epoch in range(num_epochs):
+        for i in range(0, len(X_train), batch_size):
+            inputs = torch.LongTensor(X_train[i:i+batch_size])
+            labels = torch.LongTensor(y_train[i:i+batch_size])
+
+            optimizer.zero_grad()
+            outputs = model(inputs)
+            loss = criterion(outputs, labels)
+            loss.backward()
+            optimizer.step()
 
 # Evaluate the model
 def evaluate_model(model, X_test, y_test):
-    loss, accuracy = model.evaluate(X_test, y_test)
-    return loss, accuracy
+    inputs = torch.LongTensor(X_test)
+    labels = torch.LongTensor(y_test)
+
+    outputs = model(inputs)
+    _, predicted = torch.max(outputs, 1)
+    accuracy = (predicted == labels).sum().item() / len(labels)
+
+    return loss.item(), accuracy
 
 # Save the model
 def save_model(model, filename):
-    model.save(filename)
+    torch.save(model.state_dict(), filename)
 
 # Example usage
-vocab_size = 10000
-embedding_dim = 128
-max_length = 100
-num_classes = 10
+X_train = [...]  # training data
+y_train = [...]  # training labels
+X_test = [...]   # test data
+y_test = [...]   # test labels
+
 num_epochs = 10
 batch_size = 32
 
-model = create_model(vocab_size, embedding_dim, max_length, num_classes)
-compile_model(model)
 train_model(model, X_train, y_train, num_epochs, batch_size)
 loss, accuracy = evaluate_model(model, X_test, y_test)
-save_model(model, 'storytelling_model.h5')
+save_model(model, 'storytelling_model.pt')
