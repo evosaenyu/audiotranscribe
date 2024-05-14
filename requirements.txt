@@ -16,3 +16,4 @@ audio-recorder-streamlit
 langchain-openai
 watchdog
 streamlit-elements
+langgraph
