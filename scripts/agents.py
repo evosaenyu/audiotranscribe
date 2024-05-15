@@ -1,6 +1,6 @@
 
 from langchain.output_parsers import ResponseSchema, StructuredOutputParser
-from langchain.prompts import PromptTemplate, ChatPromptTemplate
+from langchain.prompts import PromptTemplate, ChatPromptTemplate, MessagesPlaceholder
 from langchain_openai import ChatOpenAI
 from dotenv import load_dotenv
 import os 
@@ -20,18 +20,20 @@ class BaseNodeClass:
             self.chain = self.prompt | self.model | self.output_parser 
 
 class Initializer(BaseNodeClass): 
-    def __init__(self,context=''): 
+    def __init__(self): 
         self.schemas = [
-            ResponseSchema(name = "story request", description = "the object that has a field representing each part of the user's request. At minimum it should have the theme set to a certain value"), 
+            ResponseSchema(name = "story_request", description = "the object that has a field representing each part of the user's request. At minimum it should have the theme set to a certain value"), 
             ResponseSchema(name = "question", description = "the question you'd like to ask the user, if any"), 
             ResponseSchema(name ="terminating", description = "flag to know once you have enough information to provide the theme, yes or no only.")]
         super().__init__()
-        self.prompt = PromptTemplate(
-            template="""You are an initializing agent for a story telling AI.
+        self.prompt = ChatPromptTemplate.from_messages([
+            ("system",
+             f"""You are an initializing agent for a story telling AI.
              Your job is to talk to the user and ask them what kind of story they would like to hear, 
-             with the objective of determining a theme for the story, as well as any extra requests or recommendations they may have. Your job is to do so in as few questions as possible. \n {format_instructions} \n context: {context}""",
-             input_variables = [context], 
-             partial_variables = {'format_instructions': self.format_instructions}
+             with the objective of determining a theme for the story, as well as any extra requests or recommendations they may have. Your job is to do so in as few questions as possible. \n {self.format_instructions} \n"""
+             ),
+             MessagesPlaceholder(variable_name='context')
+        ]
         )
         self.init_chain()
 
