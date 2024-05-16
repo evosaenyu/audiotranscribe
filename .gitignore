@@ -11,3 +11,4 @@ pyvenv.cfg
 etc/
 *.mp3
 *.wav
+*.log

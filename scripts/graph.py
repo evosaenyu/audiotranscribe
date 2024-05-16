@@ -4,7 +4,7 @@ from typing import TypedDict, Annotated
 from langgraph.graph.message import add_messages
 from langchain_core.messages import HumanMessage,AIMessage
 
-from agents import Initializer, Constructor, Critic, Editor 
+from scripts.agents import Initializer, Constructor, Critic, Editor 
 import logging 
 import json 
 
@@ -62,6 +62,8 @@ class AgentConstructor:
 
     def construct_graph(self,user_input_fn=None):
         self.graph = StateGraph(State)
+        self.revisions = 0
+
         for v,e in zip(["editor","constructor","critic"],[self.editor,self.constructor,self.critic]):
             self.graph.add_node(v,e.chain)
     
@@ -90,22 +92,15 @@ class AgentConstructor:
         self.graph.add_edge("editor","critic")
         self.runnable = self.graph.compile()
 
+        return self.runnable
+
 
 
 if __name__ == "__main__":
     agent = AgentConstructor()
     app = agent.runnable 
     state = app.invoke({"messages": [HumanMessage(content = " ")]}) #{"recursion_limit": 3}
-    # print(app.get_state())
-    #app.invoke({"messages": []}) # {"recursion_limit": 3}
-    # current_response = {'terminating': 'no'}
-    # thread = {"configurable": {"thread_id": "2"}}
-    # current_input = HumanMessage(content='hey')
-    # while current_response['terminating'] == 'no': 
-    #     for event in app.stream({"messages": [current_input] }, thread, stream_mode="values"):
-    #         current_response = event["messages"][-1]
-    #         current_response.pretty_print()
-    #         current_input = HumanMessage(content=input("your response: "))
+
         
     print(state)
 
