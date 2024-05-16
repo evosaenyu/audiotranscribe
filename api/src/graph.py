@@ -4,7 +4,7 @@ from typing import TypedDict, Annotated
 from langgraph.graph.message import add_messages
 from langchain_core.messages import HumanMessage,AIMessage
 
-from scripts.agents import Initializer, Constructor, Critic, Editor 
+from src.agents import Initializer, Constructor, Critic, Editor 
 import logging 
 import json 
 
@@ -21,20 +21,34 @@ class State(TypedDict):
 
 class AgentConstructor: 
 
-    def __init__(self,):
+    def __init__(self,ws=None):
         self.initializer = Initializer()
         self.constructor = Constructor()
         self.critic = Critic()
         self.editor = Editor()
-        self.construct_graph()
+        # self.construct_graph()
         self.revisions = 0
+        self.rev_limit = 3
+        self.ws = ws 
 
         self.initializer.partial_chain = self.initializer.prompt | self.initializer.model
     
-    def get_user_input(self,state):
+    @staticmethod
+    def str_to_msg(text): #for external functions to be able to use 
+        return {"messages": [HumanMessage(content=text)]}
+    
+    async def get_user_input(self,state):
         ai_response = state["messages"][-1]
         ai_response.pretty_print()
-        return {"messages": [HumanMessage(content=input("what's your response? "))]}
+        
+        if self.ws: 
+            request = await self.ws.send_json({"status": 200, "generation": False, "response": ai_response.json() })
+            msg = await self.ws.receive_json()
+            msg = msg["response"]
+        else:
+            msg = input("what's your response? ")
+        
+        return self.str_to_msg(msg)
 
     def run_initializer(self,state):
         messages = state["messages"]
@@ -55,12 +69,12 @@ class AgentConstructor:
     def should_terminate(self,state):
         self.revisions += 1
         LOGGER.info(state)
-        if state["satisfactory"] == "yes" or self.revisions >= 3: 
+        if state["satisfactory"] == "yes" or self.revisions >= self.rev_limit: 
             return "end"
         return "continue"
     
 
-    def construct_graph(self,user_input_fn=None):
+    def construct_graph(self,user_input_fn):
         self.graph = StateGraph(State)
         self.revisions = 0
 
@@ -94,12 +108,17 @@ class AgentConstructor:
 
         return self.runnable
 
+    async def generate(self,user_input_fn=None,revision_limit=3):
+        self.rev_limit = revision_limit
+        app = self.construct_graph(user_input_fn=user_input_fn)
+        return await app.ainvoke({"messages": [HumanMessage(content = " ")]})
+
+
 
 
 if __name__ == "__main__":
     agent = AgentConstructor()
-    app = agent.runnable 
-    state = app.invoke({"messages": [HumanMessage(content = " ")]}) #{"recursion_limit": 3}
+    state = agent.generate() #{"recursion_limit": 3}
 
         
     print(state)

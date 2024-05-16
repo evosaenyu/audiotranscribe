@@ -10,7 +10,11 @@ Installation
 - pip3 install -r requirements.txt
 
 How to Run
-- streamlit run Home.py
+
+BACKEND WEBSOCKET STREAM: 
+    - cd api && fastapi app.py 
+WEB UI: 
+    - streamlit run Home.py
 
 Feature List
 - cut off command 
