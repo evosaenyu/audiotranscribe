@@ -6,6 +6,7 @@ Prerequisites
  - duplicate template.env to .env file and populate the necessary environment variables
 
 Installation
+- OLLAMA (install from here: https://ollama.com/download)
 - pip3 install -r requirements.txt
 
 How to Run

@@ -2,27 +2,22 @@
 from langgraph.graph import StateGraph , END 
 from typing import TypedDict, Annotated 
 from langgraph.graph.message import add_messages
-from langchain_core.messages import HumanMessage
+from langchain_core.messages import HumanMessage,AIMessage
 
 from agents import Initializer, Constructor, Critic, Editor 
 import logging 
+import json 
 
 LOGGER = logging.getLogger(__name__)
 logging.basicConfig(filename='graph.log', encoding='utf-8', level=logging.DEBUG)
 
-def increment(current: int, new):
-    print('INCREMENTING',current)
-    return current + 1 
-
 class State(TypedDict): 
-    context: Annotated[list,add_messages]
+    messages: Annotated[list,add_messages]
     story_request: object  = {} # {theme: str, .... (extra params as requested)}
     story: str # string the current story 
     critic_feedback: object  # {satisfactory: yes or no, feedback: }
-    story_len: int = 10000
     satisfactory: str 
     feedback: str
-    ctr: Annotated[int, increment]
 
 class AgentConstructor: 
 
@@ -32,43 +27,53 @@ class AgentConstructor:
         self.critic = Critic()
         self.editor = Editor()
         self.construct_graph()
-    
-    @staticmethod
-    def continue_initialization(state):
-        print(state["context"][-1])
-        response = input("your response: ")
-        return {"context": [HumanMessage(content=response)]}
+        self.revisions = 0
 
+        self.initializer.partial_chain = self.initializer.prompt | self.initializer.model
     
-    @staticmethod
-    def should_continue_initialization(state):
-        if "terminating" in state["context"][-1]:
-            if state["context"][-1]["terminating"] == "yes":
+    def get_user_input(self,state):
+        ai_response = state["messages"][-1]
+        ai_response.pretty_print()
+        return {"messages": [HumanMessage(content=input("what's your response? "))]}
+
+    def run_initializer(self,state):
+        messages = state["messages"]
+        response = self.initializer.partial_chain.invoke({"messages": messages})
+        parsed_response = self.initializer.output_parser.parse(response.content)
+        return {"messages": [response],"story_request": parsed_response['story_request']}
+    
+
+    def should_continue_initialization(self,state):
+        latest = self.initializer.output_parser.parse(state["messages"][-1].content) 
+        if "terminating" in latest:
+            if latest["terminating"] == "yes":
                 return "initialized"
         
         return "continue"
 
-    @staticmethod
-    def should_terminate(state):
+
+    def should_terminate(self,state):
+        self.revisions += 1
         LOGGER.info(state)
-        if state["satisfactory"] == "yes" or state["ctr"] >= 3: 
+        if state["satisfactory"] == "yes" or self.revisions >= 3: 
             return "end"
         return "continue"
     
 
-    def construct_graph(self):
+    def construct_graph(self,user_input_fn=None):
         self.graph = StateGraph(State)
-        for v,e in zip(["initializer","editor","constructor","critic"],[self.initializer,self.editor,self.constructor,self.critic]):
+        for v,e in zip(["editor","constructor","critic"],[self.editor,self.constructor,self.critic]):
             self.graph.add_node(v,e.chain)
     
-        self.graph.add_node("continue_initialization",self.continue_initialization)
-        self.graph.add_edge("continue_initialization","initializer")
+        self.graph.add_node("initializer",self.run_initializer)
+        self.graph.add_node("get_user_input",self.get_user_input if not user_input_fn else user_input_fn)
+        self.graph.add_edge("get_user_input","initializer")
         self.graph.set_entry_point("initializer")
         self.graph.add_conditional_edges(
             "initializer",
             self.should_continue_initialization,
             {
-                "continue": "continue_initialization",
+                "continue": "get_user_input",
                 "initialized": "constructor"
             }
         )
@@ -90,12 +95,18 @@ class AgentConstructor:
 if __name__ == "__main__":
     agent = AgentConstructor()
     app = agent.runnable 
-    # app.invoke({"context": [HumanMessage(content = "tell me a bedtime story")]},{"recursion_limit": 3})
+    state = app.invoke({"messages": [HumanMessage(content = " ")]}) #{"recursion_limit": 3}
     # print(app.get_state())
-
-    thread = {"configurable": {"thread_id": "2"}}
-    inputs = [HumanMessage(content="hi! what's your name? ")]
-    for event in app.stream({"context": inputs}, thread, stream_mode="values"):
-        event["context"][-1].pretty_print()
+    #app.invoke({"messages": []}) # {"recursion_limit": 3}
+    # current_response = {'terminating': 'no'}
+    # thread = {"configurable": {"thread_id": "2"}}
+    # current_input = HumanMessage(content='hey')
+    # while current_response['terminating'] == 'no': 
+    #     for event in app.stream({"messages": [current_input] }, thread, stream_mode="values"):
+    #         current_response = event["messages"][-1]
+    #         current_response.pretty_print()
+    #         current_input = HumanMessage(content=input("your response: "))
+        
+    print(state)
 
     
