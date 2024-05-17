@@ -42,9 +42,11 @@ class AgentConstructor:
         ai_response.pretty_print()
         
         if self.ws: 
-            request = await self.ws.send_json({"status": 200, "generation": False, "response": ai_response.json() })
+            _ = await self.ws.send_json({"status": 200, "generation": False, "response": ai_response.content })
             msg = await self.ws.receive_json()
-            msg = msg["response"]
+            if type(msg) == str: msg = json.loads(msg)
+            print(msg)
+            msg = msg["response"] 
         else:
             msg = input("what's your response? ")
         
@@ -57,12 +59,13 @@ class AgentConstructor:
         return {"messages": [response],"story_request": parsed_response['story_request']}
     
 
-    def should_continue_initialization(self,state):
+    async def should_continue_initialization(self,state):
         latest = self.initializer.output_parser.parse(state["messages"][-1].content) 
         if "terminating" in latest:
             if latest["terminating"] == "yes":
+                _ = await self.ws.send_json({"status": 200, "generation": False, "response": "dreaming something up just for you ..."})
                 return "initialized"
-        
+
         return "continue"
 
 

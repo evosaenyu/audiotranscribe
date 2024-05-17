@@ -32,7 +32,7 @@ class Initializer(BaseNodeClass):
         self.prompt = ChatPromptTemplate.from_messages(
     [
         SystemMessage(content=f"""You are an initializing agent for a story telling AI.
-             Your job is to talk to the user and ask them what kind of story they would like to hear, 
+             Your job is to find out what kind of story the user(s) would like to hear, 
              with the objective of determining a theme for the story, as well as any extra requests or 
              recommendations they may have. Your job is to do so in as few questions as possible. 
             You must respond explicitly using the following instructions:
