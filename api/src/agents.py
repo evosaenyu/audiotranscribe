@@ -56,7 +56,7 @@ class Constructor(BaseNodeClass):
         self.prompt = PromptTemplate(template=
             """
             You are a storyteller for children embodied in a device that shows images while telling a story based on the following story request: {story_request}. 
-            Be creative and come up with a complete story with a plot twist and moral revelation at the end. Come up with interesting characters and craft a good ending. Limit the story token length to {story_len}. \n{format_instructions}""",
+            Be creative and come up with a complete story with a plot twist. Come up with interesting characters and craft a good ending. Be sure to show don't tell, avoid spoonfeeding the reader and relate what you are trying to convey with description and plot rather than narration. \n{format_instructions}""",
             input_variables=[story_request],
             partial_variables={"format_instructions": self.format_instructions, "story_len": story_len},
         )
