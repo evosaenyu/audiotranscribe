@@ -6,18 +6,19 @@ from langchain_core.messages import HumanMessage,AIMessage
 
 from src.agents import Initializer, Constructor, Critic, Editor 
 import logging 
-import json 
+import json
+
+from src.responses import *
 
 LOGGER = logging.getLogger(__name__)
 logging.basicConfig(filename='graph.log', encoding='utf-8', level=logging.DEBUG)
 
 class State(TypedDict): 
     messages: Annotated[list,add_messages]
-    story_request: object  = {} # {theme: str, .... (extra params as requested)}
-    story: str # string the current story 
-    critic_feedback: object  # {satisfactory: yes or no, feedback: }
-    satisfactory: str 
-    feedback: str
+    story_request: InitializationResponse # {theme: str, .... (extra params as requested)}
+    story: StoryObject # string the current story 
+    satisfactory: CriticResponse
+    feedback: CriticResponse
 
 class AgentConstructor: 
 
@@ -55,16 +56,15 @@ class AgentConstructor:
     def run_initializer(self,state):
         messages = state["messages"]
         response = self.initializer.partial_chain.invoke({"messages": messages})
-        parsed_response = self.initializer.output_parser.parse(response.content)
-        return {"messages": [response],"story_request": parsed_response['story_request']}
+        parsed_response = self.initializer.parser.parse(response.content)
+        return {"messages": [response],"story_request": parsed_response.story_request}
     
 
     async def should_continue_initialization(self,state):
-        latest = self.initializer.output_parser.parse(state["messages"][-1].content) 
-        if "terminating" in latest:
-            if latest["terminating"] == "yes":
-                _ = await self.ws.send_json({"status": 200, "generation": False, "response": "dreaming something up just for you ..."})
-                return "initialized"
+        latest = self.initializer.parser.parse(state["messages"][-1].content) 
+        if latest.terminating == terminationEnum.yes:
+            _ = await self.ws.send_json({"status": 200, "generation": False, "response": "dreaming something up just for you ..."})
+            return "initialized"
 
         return "continue"
 
@@ -72,7 +72,8 @@ class AgentConstructor:
     def should_terminate(self,state):
         self.revisions += 1
         LOGGER.info(state)
-        if state["satisfactory"] == "yes" or self.revisions >= self.rev_limit: 
+        print("should terminate state",state)
+        if state["satisfactory"] == terminationEnum.yes or self.revisions >= self.rev_limit: 
             return "end"
         return "continue"
     

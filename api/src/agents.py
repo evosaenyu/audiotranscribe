@@ -1,34 +1,45 @@
 
-from langchain.output_parsers import ResponseSchema, StructuredOutputParser
+from langchain.output_parsers import PydanticOutputParser
 from langchain.prompts import PromptTemplate, ChatPromptTemplate, MessagesPlaceholder
 from langchain_openai import ChatOpenAI
 from langchain_community.chat_models import ChatOllama
 from langchain_core.messages import SystemMessage
+from langchain_community.utilities.dalle_image_generator import DallEAPIWrapper
+from langchain_core.runnables import RunnablePassthrough
+from src.responses import *
 
 from dotenv import load_dotenv
 import os 
-from typing import List
 
 load_dotenv() 
 
 
 class BaseNodeClass: 
-    def __init__(self,model='gpt-4o',parser =  StructuredOutputParser):
+    def __init__(self,
+                 parser,
+                 model = ChatOllama(base_url=os.getenv('OLLAMA_URL'),model='llama3') if os.getenv('OLLAMA','False') == 'True' else ChatOpenAI(temperature=0.0,model='gpt-4o',api_key=os.getenv('OPENAI_API_KEY')),
+                 ):
         self.parser = parser 
-        self.model = ChatOllama(base_url=os.getenv('OLLAMA_URL'),model='llama3') if os.getenv('OLLAMA','False') == 'True' else ChatOpenAI(temperature=0.0,model=model,api_key=os.getenv('OPENAI_API_KEY')) 
-        self.output_parser = self.parser.from_response_schemas(self.schemas)
-        self.format_instructions =  self.output_parser.get_format_instructions()
+        self.model = model
+        self.format_instructions =  self.parser.get_format_instructions()
+        
+        
 
     def init_chain(self):
-            self.chain = self.prompt | self.model | self.output_parser 
+            self.chain = self.prompt | self.model | self.parser 
+
+class Artist(BaseNodeClass):
+
+    def __init__(self,num_images =6):
+        self.num_images = 6
+        parser = None
+        super().__init__()
+
 
 class Initializer(BaseNodeClass): 
     def __init__(self): 
-        self.schemas = [
-            ResponseSchema(name = "story_request", description = "an object that has a field representing each part of the user's request. At minimum it should have the theme field set to a certain value"), 
-            ResponseSchema(name = "question", description = "the question you'd like to ask the user, if any"), 
-            ResponseSchema(name ="terminating", description = "flag to know once you have enough information to provide the theme, yes or no only.")]
-        super().__init__()
+        parser = PydanticOutputParser(pydantic_object=InitializationResponse)
+        super().__init__(parser=parser)
         self.prompt = ChatPromptTemplate.from_messages(
     [
         SystemMessage(content=f"""You are an initializing agent for a story telling AI.
@@ -42,38 +53,26 @@ class Initializer(BaseNodeClass):
     )
         self.init_chain()
 
-        
-
-
 class Constructor(BaseNodeClass): 
-    def __init__(self,story_request = '',story_len=10000): 
-        self.schemas = [
-            ResponseSchema(
-                name="story",
-                description="the complete story",
-            )]
-        super().__init__()
+    def __init__(self,story_request = ''): 
+        parser=PydanticOutputParser(pydantic_object=StoryObject)
+        super().__init__(parser=parser)
         self.prompt = PromptTemplate(template=
             """
             You are a storyteller for children embodied in a device that shows images while telling a story based on the following story request: {story_request}. 
             Be creative and come up with a complete story with a plot twist. Come up with interesting characters and craft a good ending. Be sure to show don't tell, avoid spoonfeeding the reader and relate what you are trying to convey with description and plot rather than narration. \n{format_instructions}""",
             input_variables=[story_request],
-            partial_variables={"format_instructions": self.format_instructions, "story_len": story_len},
+            partial_variables={"format_instructions": self.format_instructions},
         )
-        self.init_chain()
         #self.chain.max_tokens_limit = story_len
-
+        self.init_chain()
+        self.chain |= dict  
         
 
 class Editor(BaseNodeClass): 
     def __init__(self,story='',feedback=''): 
-        self.schemas = [
-                    ResponseSchema(
-                        name="story",
-                        description="the complete story",
-                    )
-                ] 
-        super().__init__()
+        parser= PydanticOutputParser(pydantic_object=StoryObject)
+        super().__init__(parser=parser)
         self.prompt = PromptTemplate(template=
             """
             You are an editor for a children's story that is to be submitted for Pullitzer consideration. 
@@ -84,21 +83,13 @@ class Editor(BaseNodeClass):
             partial_variables={"format_instructions": self.format_instructions},
         )
         self.init_chain()
+        self.chain |= dict
 
 
 class Critic(BaseNodeClass): 
     def __init__(self,story =''): 
-        self.schemas = [
-            ResponseSchema( 
-                name = "satisfactory", 
-                description = "single word yes or no whether or not this story is satisfactory"
-            ), 
-            ResponseSchema(
-                name = "feedback", 
-                description = "a detailed description outlining which parts of the story needs to be improved if at all"
-            )
-        ]
-        super().__init__()
+        parser = PydanticOutputParser(pydantic_object=CriticResponse)
+        super().__init__(parser=parser)
         # can be considered one of the greatest literary works ever conceived.
         self.prompt = PromptTemplate(template = 
             """
@@ -113,4 +104,5 @@ class Critic(BaseNodeClass):
         partial_variables = {"format_instructions": self.format_instructions}
         )
         self.init_chain()
+        self.chain |= dict
 
