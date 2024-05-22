@@ -4,7 +4,7 @@ from typing import TypedDict, Annotated
 from langgraph.graph.message import add_messages
 from langchain_core.messages import HumanMessage,AIMessage
 
-from src.agents import Initializer, Constructor, Critic, Editor , Artist 
+from src.agents import Initializer, Constructor, Critic, Editor , Copywriter 
 import logging 
 import json
 
@@ -28,7 +28,7 @@ class AgentConstructor:
         self.constructor = Constructor()
         self.critic = Critic()
         self.editor = Editor()
-        self.artist = Artist()
+        self.copywriter = Copywriter()
         # self.construct_graph()
         self.revisions = 0
         self.rev_limit = 3
@@ -83,7 +83,7 @@ class AgentConstructor:
         self.graph = StateGraph(State)
         self.revisions = 0
 
-        for v,e in zip(["editor","constructor","critic","artist"],[self.editor,self.constructor,self.critic,self.artist]):
+        for v,e in zip(["editor","constructor","critic","copywriter"],[self.editor,self.constructor,self.critic,self.copywriter]):
             self.graph.add_node(v,e.chain)
     
         self.graph.add_node("initializer",self.run_initializer)
@@ -104,12 +104,12 @@ class AgentConstructor:
             "critic",
             self.should_terminate,
             {
-                "art": "artist",
+                "art": "copywriter",
                 "continue": "editor"
             }
         )
         self.graph.add_edge("editor","critic")
-        self.graph.add_edge("artist",END)
+        self.graph.add_edge("copywriter",END)
         self.runnable = self.graph.compile()
 
         return self.runnable
