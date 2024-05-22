@@ -10,11 +10,11 @@ class terminationEnum(Enum):
     no = 'no'
 
 class DescriptionItem(BaseModel): 
-    story_section: str = Field(description="t") # hmm.. 
+    story_section: str = Field(description="the exact section of the story to be read while the related image_description is showing") # hmm.. 
     image_description: str = Field(description="extremely vividly detailed description of the backdrop")
 
 class Descriptions(BaseModel):
-    descriptions: List[str] = Field(description="a list of descriptions, each one an extremely vividly detailed description of the backdrop")
+    descriptions: List[DescriptionItem] = Field(description="a list of descriptions, each one an extremely vividly detailed description of the backdrop")
 
 class InitializationResponse(BaseModel):
     story_request: dict = Field(description="an object that has a field representing each part of the user's request. At minimum it should have the theme field set to a certain value")

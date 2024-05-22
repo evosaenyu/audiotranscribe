@@ -29,11 +29,20 @@ class BaseNodeClass:
             self.chain = self.prompt | self.model | self.parser 
 
 class Artist(BaseNodeClass):
-
-    def __init__(self,num_images =6):
+    def __init__(self,story = '',num_images =6):
         self.num_images = 6
-        parser = None
-        super().__init__()
+        parser = PydanticOutputParser(pydantic_object=Descriptions)
+        super().__init__(parser=parser)
+        self.prompt = PromptTemplate(template="""
+            You are artist that takes children's stories and generates descriptions of backdrops that should be displayed 
+            while the following story is being narrated. You should return back a list of the exact word for word sections of the story with a description of the
+            corresponding background image to be shown. Make sure the backdrop shows places and environments, but strictly NO PEOPLE to be shown in the images. 
+            here is the : {story} \n {format_instructions} \n
+        """, 
+        input_variables=[story],
+        partial_variables={"format_instructions": self.format_instructions})
+        self.init_chain()
+        self.chain |= dict 
 
 
 class Initializer(BaseNodeClass): 
