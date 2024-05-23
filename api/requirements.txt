@@ -2,3 +2,5 @@ fastapi
 uvicorn
 langgraph
 langchain_openai
+moviepy 
+opencv-python

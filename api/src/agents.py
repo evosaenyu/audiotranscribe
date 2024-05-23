@@ -7,7 +7,13 @@ from langchain_core.messages import SystemMessage
 from langchain_community.utilities.dalle_image_generator import DallEAPIWrapper
 import concurrent.futures
 
+import cv2
+import urllib
+import numpy as np
+
 from src.responses import *
+
+from moviepy.editor import * 
 
 from dotenv import load_dotenv
 import os 
@@ -37,6 +43,13 @@ class Artist(BaseNodeClass):
     def __init__(self,model='dall-e-3'):
         self.wrapper = DallEAPIWrapper(api_key=os.getenv('OPENAI_API_KEY'),model=model)
     
+    @staticmethod
+    def url_to_img(url):
+        req = urllib.request.urlopen(url)
+        arr = np.asarray(bytearray(req.read()), dtype=np.uint8)
+        img = cv2.imdecode(arr, -1)
+        return img 
+    
     def image_from_prompt(self,prompt):
         return {"prompt": prompt, "image_url": self.wrapper.run(prompt)}
     
@@ -53,6 +66,18 @@ class Artist(BaseNodeClass):
                     print(e)
         
         return results 
+
+    def compose_av(self,descriptions):
+        clips = []
+        for description in descriptions:
+            img = self.url_to_img(description.image_url)
+            clip = ImageClip(img).set_duration(3)
+            clips.append(clip.crossfadein(2))
+        
+        video = concatenate(clips,method="compose")
+        #video.preview()
+        return video
+
 
     
     def generate_images_parallel(self,descriptions):
