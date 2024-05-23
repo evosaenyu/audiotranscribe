@@ -4,7 +4,7 @@ from typing import TypedDict, Annotated
 from langgraph.graph.message import add_messages
 from langchain_core.messages import HumanMessage,AIMessage
 
-from src.agents import Initializer, Constructor, Critic, Editor , Copywriter 
+from src.agents import *
 import logging 
 import json
 
@@ -29,6 +29,7 @@ class AgentConstructor:
         self.critic = Critic()
         self.editor = Editor()
         self.copywriter = Copywriter()
+        self.artist = Artist() 
         # self.construct_graph()
         self.revisions = 0
         self.rev_limit = 3
@@ -75,7 +76,7 @@ class AgentConstructor:
         self.revisions += 1
         LOGGER.info(state)
         if state["satisfactory"] == terminationEnum.yes or self.revisions >= self.rev_limit: 
-            return "art"
+            return "copywriter"
         return "continue"
     
 
@@ -87,6 +88,7 @@ class AgentConstructor:
             self.graph.add_node(v,e.chain)
     
         self.graph.add_node("initializer",self.run_initializer)
+        self.graph.add_node("artist",self.artist.invoke)
         self.graph.add_node("get_user_input",self.get_user_input if not user_input_fn else user_input_fn)
         self.graph.add_edge("get_user_input","initializer")
         self.graph.set_entry_point("initializer")
@@ -104,12 +106,13 @@ class AgentConstructor:
             "critic",
             self.should_terminate,
             {
-                "art": "copywriter",
+                "copywriter": "copywriter",
                 "continue": "editor"
             }
         )
         self.graph.add_edge("editor","critic")
-        self.graph.add_edge("copywriter",END)
+        self.graph.add_edge("copywriter","artist")
+        self.graph.add_edge("artist",END)
         self.runnable = self.graph.compile()
 
         return self.runnable
