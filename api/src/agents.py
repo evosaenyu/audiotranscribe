@@ -7,13 +7,20 @@ from langchain_core.messages import SystemMessage
 from langchain_community.utilities.dalle_image_generator import DallEAPIWrapper
 import concurrent.futures
 
+import io 
+
+from openai import OpenAI
+
 import cv2
 import urllib
 import numpy as np
 
 from src.responses import *
 
+import librosa 
+
 from moviepy.editor import * 
+from moviepy.audio.AudioClip import AudioArrayClip
 
 from dotenv import load_dotenv
 import os 
@@ -40,8 +47,10 @@ class BaseNodeClass:
 
 class Artist(BaseNodeClass): 
     
-    def __init__(self,model='dall-e-3'):
+    def __init__(self,model='dall-e-3',voice_model="nova"):
         self.wrapper = DallEAPIWrapper(api_key=os.getenv('OPENAI_API_KEY'),model=model)
+        self.client = OpenAI(api_key=os.getenv('OPENAI_API_KEY'))
+        self.voice = voice_model
     
     @staticmethod
     def url_to_img(url):
@@ -50,13 +59,32 @@ class Artist(BaseNodeClass):
         img = cv2.imdecode(arr, -1)
         return img 
     
+
+    def generate_speech_audio(self,prompt):
+        # Generate the speech audio file
+        response = self.client.audio.speech.create(
+            model="tts-1",
+            voice=self.voice,
+            speed=1,
+            input=prompt,
+            response_format='wav'
+        )
+        return response
+
     def image_from_prompt(self,prompt):
         return {"prompt": prompt, "image_url": self.wrapper.run(prompt)}
     
-    def parallel_image_calls(self,prompts):
+    def audio_from_prompt(self,prompt):
+        audio_response = self.generate_speech_audio(prompt)
+        data,samplerate= librosa.load(io.BytesIO(audio_response.read()))
+        print(data.shape)
+        return {"prompt": prompt, "audio_file": data }
+    
+    @staticmethod
+    def multithreaded_func_call(f,inputs): # takes in a function to be run in parallel over list of args and return results in an arry 
         results = [] 
         with concurrent.futures.ThreadPoolExecutor() as executor: 
-            future_to_url = {executor.submit(self.image_from_prompt,prompt):prompt for prompt in prompts}
+            future_to_url = {executor.submit(f,i):i for i in inputs}
             for future in concurrent.futures.as_completed(future_to_url):
                 url = future_to_url[future]
                 try: 
@@ -67,30 +95,63 @@ class Artist(BaseNodeClass):
         
         return results 
 
-    def compose_av(self,descriptions):
-        clips = []
+    @staticmethod
+    def audio_file_duration(audio_arr):
+        return int(librosa.get_duration(y=audio_arr,sr=44100))
+    
+
+    def compose_av(self,descriptions): #todo: remove the url to image call into the generate images threaded func
+        video_clips = []
+        audio_clips = []
+        TRANSITION_TIME = 2
         for description in descriptions:
             img = self.url_to_img(description.image_url)
-            clip = ImageClip(img).set_duration(3)
-            clips.append(clip.crossfadein(2))
+            screen_time = self.audio_file_duration(description.audio_file)
+            clip = ImageClip(img).set_duration(screen_time)
+            #audio_clip = AudioArrayClip(description.audio_file,fps=44100)
+            #audio_clips.append(audio_clip)
+            video_clips.append(clip.crossfadein(TRANSITION_TIME))
         
-        video = concatenate(clips,method="compose")
-        #video.preview()
+        #comp_audio = CompositeAudioClip([audio_clips])
+        video = concatenate(video_clips,method="compose")
+        #video.audio = comp_audio
+        video.preview()
         return video
 
-
+    def generate_audio(self,descriptions):
+        audio_files = self.multithreaded_func_call(self.audio_from_prompt,[d.story_section for d in descriptions])
+        return audio_files
     
-    def generate_images_parallel(self,descriptions):
-        prompt_idx_map = {d.image_description: i for i,d in enumerate(descriptions)}
-        prompt_image_pairs = self.parallel_image_calls([d.image_description for d in descriptions])
-        for res in prompt_image_pairs:
-            idx = prompt_idx_map[res["prompt"]]
-            descriptions[idx].image_url = res["image_url"]
-        return descriptions 
+    def generate_images(self,descriptions):
+        image_files = self.multithreaded_func_call(self.image_from_prompt,[d.image_description for d in descriptions])
+        return image_files
+
+    def generate_image_audio_concurrent(self,descriptions): # todo: make the descriptions a state of this class that the various asynch calls mutate, because this is very ugly 
+        results = [None]*2
+        with concurrent.futures.ThreadPoolExecutor() as executor: 
+            future_to_result = {executor.submit(f,descriptions): f for f in [self.generate_images,self.generate_audio]}
+            for future in concurrent.futures.as_completed(future_to_result):
+                result = future_to_result[future]
+                try: 
+                    data = future.result()
+                    results[1 if 'audio_file' in data[0].keys() else 0] = data 
+                except Exception as e: 
+                    print(e)
+        
+        return results # results[0] is result of generate_images, results[1] is result of generate_audio
     
     def invoke(self,state):
-        updated = self.generate_images_parallel(state["descriptions"])
-        return {"descriptions":updated}
+        descriptions = state["descriptions"]
+        img_prompt_idx_map = {d.image_description: i for i,d in enumerate(descriptions)}
+        audio_prompt_idx_map = {d.story_section: i for i,d in enumerate(descriptions)}
+        image_urls, audio_files = self.generate_image_audio_concurrent(state["descriptions"])
+        for i in range(len(image_urls)):
+            im_idx = img_prompt_idx_map[image_urls[i]["prompt"]]
+            au_idx = audio_prompt_idx_map[audio_files[i]["prompt"]]
+            descriptions[im_idx].image_url = image_urls[i]["image_url"]
+            descriptions[au_idx].audio_file = audio_files[i]["audio_file"]
+
+        return {"descriptions":descriptions}
 
 
 
