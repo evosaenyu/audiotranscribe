@@ -99,10 +99,10 @@ class Artist(BaseNodeClass):
     def audio_file_duration(audio_arr):
         return int(librosa.get_duration(y=audio_arr,sr=44100))
     
-    def get_video_clip_size(self, clip, file_name="temp_clip.mp4"):
-        clip.write_videofile(file_name, codec='libx264', fps=24)
-        size = os.path.getsize(file_name) / (1024 * 1024)  # Size in MB
-        return size
+    @staticmethod
+    def get_video_clip_size(clip): # assuming bit depth of 24 and fps of 24
+        return 24*clip.duration*clip.w*clip.h*3/1e6
+
 
     def compose_av(self, descriptions):
         video_clips = []
@@ -116,15 +116,11 @@ class Artist(BaseNodeClass):
             clip = ImageClip(img).set_duration(screen_time)
             video_clips.append(clip.crossfadein(TRANSITION_TIME))
 
-            # Calculate the size of each clip
-            size = self.get_video_clip_size(clip)
-            total_size += size
-
-        # Print the total size of all video clips in MB
-        print(f"Total size of video clips: {total_size:.2f} MB")
 
         video = concatenate_videoclips(video_clips, method="compose")
-        video.preview()
+        total_size = self.get_video_clip_size(video)
+        print(f"Total size of video clips: {total_size:.2f} MB") # Print the total size of all video clips in MB
+        #video.preview()
         return video
 
     def generate_audio(self,descriptions):
