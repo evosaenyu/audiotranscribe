@@ -99,22 +99,31 @@ class Artist(BaseNodeClass):
     def audio_file_duration(audio_arr):
         return int(librosa.get_duration(y=audio_arr,sr=44100))
     
+    def get_video_clip_size(self, clip, file_name="temp_clip.mp4"):
+        clip.write_videofile(file_name, codec='libx264', fps=24)
+        size = os.path.getsize(file_name) / (1024 * 1024)  # Size in MB
+        return size
 
-    def compose_av(self,descriptions): #todo: remove the url to image call into the generate images threaded func
+    def compose_av(self, descriptions):
         video_clips = []
         audio_clips = []
         TRANSITION_TIME = 2
+        total_size = 0
+
         for description in descriptions:
             img = self.url_to_img(description.image_url)
             screen_time = self.audio_file_duration(description.audio_file)
             clip = ImageClip(img).set_duration(screen_time)
-            #audio_clip = AudioArrayClip(description.audio_file,fps=44100)
-            #audio_clips.append(audio_clip)
             video_clips.append(clip.crossfadein(TRANSITION_TIME))
-        
-        #comp_audio = CompositeAudioClip([audio_clips])
-        video = concatenate(video_clips,method="compose")
-        #video.audio = comp_audio
+
+            # Calculate the size of each clip
+            size = self.get_video_clip_size(clip)
+            total_size += size
+
+        # Print the total size of all video clips in MB
+        print(f"Total size of video clips: {total_size:.2f} MB")
+
+        video = concatenate_videoclips(video_clips, method="compose")
         video.preview()
         return video
 
@@ -156,7 +165,7 @@ class Artist(BaseNodeClass):
 
 
 class Copywriter(BaseNodeClass):
-    def __init__(self,story = '',num_images =7):
+    def __init__(self,story = '',num_images = os.getenv('MAX_IMGS')):
         self.num_images = num_images
         parser = PydanticOutputParser(pydantic_object=Descriptions)
         super().__init__(parser=parser)
