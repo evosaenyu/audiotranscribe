@@ -102,6 +102,7 @@ class Director(BaseNodeClass):
         try: 
             #video.preview()
             video.write_videofile(filepath,fps=24,threads=8)
+            compress_video(filepath,os.path.getsize(filepath)/50) # compression ratio
             total_size = get_video_clip_size(video)
             print(f"Total size of video clips: {total_size:.2f} MB") # Print the total size of all video clips in MB
         except Exception as e:
@@ -173,12 +174,14 @@ class Copywriter(BaseNodeClass):
             prompts = [(SPLIT_CHAR).join(c) for c in chunk_into_n(chunks,self.num_images)]
         
         return [p for p in prompts if len(p) > 1]
-            
+    
+    def generate_descriptions(self,prompt):
+        response = self.chain.invoke({"story_section": prompt})
+        return response
     
     def commission(self,state):
         prompts = self.splice_story(state["story"])
-        image_descriptions = multithreaded_func_call(self.chain.invoke,[{"story_section": p} for p in prompts])
-        print(image_descriptions)
+        image_descriptions = multithreaded_func_call(self.generate_descriptions,prompts)
         return {"descriptions": image_descriptions}
 
 

@@ -5,3 +5,4 @@ langchain_openai
 moviepy 
 opencv-python
 ffmpeg-python
+mutagen

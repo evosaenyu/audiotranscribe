@@ -4,7 +4,7 @@ import tempfile
 import os 
 import json 
 import requests 
-
+import ffmpeg 
 import shutil 
 
 from dotenv import load_dotenv
@@ -75,19 +75,19 @@ def generate_filepath(file,dir=os.getenv('TEMP_DIR','./tmpdir')):
 def multithreaded_func_call(f,inputs): # takes in a function to be run in parallel over list of args and return results in an arry 
     results = [None]*len(inputs) 
     input_idx_map = {str(a):i for i,a in enumerate(inputs)}
-    print('input idx map',input_idx_map)
-    with concurrent.futures.ThreadPoolExecutor() as executor: 
+    with concurrent.futures.ThreadPoolExecutor(max_workers=2) as executor: 
         future_to_input = {executor.submit(f,i):i for i in inputs}
         for future in concurrent.futures.as_completed(future_to_input):
-            arg = future_to_input[future]
+            a = future_to_input[future]
             try: 
-                print('for input: ',arg)
                 data = future.result()
-                print('the results ',data)
-                idx = input_idx_map[str(arg)]
+                idx = input_idx_map[str(a)]
                 results[idx] = data
             except Exception as e: 
-                print(e)
+                print('the inputs ',a)
+                print('the data',data)
+                raise Exception(e)
+    
     
     return results 
 
@@ -96,3 +96,36 @@ def audio_file_duration(audio_file):
 
 def get_video_clip_size(clip): # assuming bit depth of 24 and fps of 24
     return 24*clip.duration*clip.w*clip.h*3/1e6
+
+
+def compress_video(video_full_path,target_size):
+    # Reference: https://en.wikipedia.org/wiki/Bit_rate#Encoding_bit_rate
+    min_audio_bitrate = 32000
+    max_audio_bitrate = 256000
+
+    probe = ffmpeg.probe(video_full_path)
+    # Video duration, in s.
+    duration = float(probe['format']['duration'])
+    # Audio bitrate, in bps.
+    audio_bitrate = float(next((s for s in probe['streams'] if s['codec_type'] == 'audio'), None)['bit_rate'])
+    # Target total bitrate, in bps.
+    target_total_bitrate = (target_size * 1024 * 8) / (1.073741824 * duration)
+
+    # Target audio bitrate, in bps
+    if 10 * audio_bitrate > target_total_bitrate:
+        audio_bitrate = target_total_bitrate / 10
+        if audio_bitrate < min_audio_bitrate < target_total_bitrate:
+            audio_bitrate = min_audio_bitrate
+        elif audio_bitrate > max_audio_bitrate:
+            audio_bitrate = max_audio_bitrate
+    # Target video bitrate, in bps.
+    video_bitrate = target_total_bitrate - audio_bitrate
+
+    i = ffmpeg.input(video_full_path)
+    ffmpeg.output(i, os.devnull,
+                  **{'c:v': 'libx264', 'b:v': video_bitrate, 'pass': 1, 'f': 'mp4'}
+                  ).overwrite_output().run()
+    ffmpeg.output(i, video_full_path,
+                  **{'c:v': 'libx264', 'b:v': video_bitrate, 'pass': 2, 'c:a': 'aac', 'b:a': audio_bitrate}
+                  ).overwrite_output().run()
+
