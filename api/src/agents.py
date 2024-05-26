@@ -17,7 +17,6 @@ import numpy as np
 
 from src.responses import *
 
-import librosa 
 
 from moviepy.editor import * 
 
@@ -26,7 +25,7 @@ from src.utils import *
 from dotenv import load_dotenv
 import os 
 
-load_dotenv(os.path.join(os.getcwd(),'..','..','.env'))
+load_dotenv(os.path.join(os.getcwd(),'..','..','.env'),override=True)
 
 class BaseNodeClass: 
     def __init__(self,
@@ -62,23 +61,27 @@ class Director(BaseNodeClass):
 
     def generate_speech_audio(self,prompt):
         # Generate the speech audio file
-        response = self.client.audio.speech.create(
+        filepath = generate_filepath('speech.mp3')
+        try: 
+            with self.client.audio.speech.with_streaming_response.create(
             model="tts-1",
             voice=self.voice,
-            speed=1,
             input=prompt,
-            response_format='wav'
-        )
-        return response
+            speed=1
+        ) as response:
+                response.stream_to_file(filepath)
+        except Exception as e:
+            delete_tmpfile(filepath)
+            print(e)
+
+        return filepath
 
     def image_from_prompt(self,prompt):
         return {"prompt": prompt, "image_url": self.wrapper.run(prompt)}
     
     def audio_from_prompt(self,prompt):
-        audio_response = self.generate_speech_audio(prompt)
-        data,samplerate= librosa.load(io.BytesIO(audio_response.read()))
-        print(data.shape)
-        return {"prompt": prompt, "audio_file": data }
+        audio_file = self.generate_speech_audio(prompt)
+        return {"prompt": prompt, "audio_file": audio_file }
     
 
 
@@ -127,6 +130,9 @@ class Director(BaseNodeClass):
                     data = future.result()
                     results[1 if 'audio_file' in data[0].keys() else 0] = data 
                 except Exception as e: 
+                    if results[1]:
+                        for g in results[1]: 
+                            delete_tmpfile(g['audio_file'])
                     print(e)
         
         return results # results[0] is result of generate_images, results[1] is result of generate_audio

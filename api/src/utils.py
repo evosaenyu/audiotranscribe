@@ -9,7 +9,7 @@ import shutil
 
 from dotenv import load_dotenv
 
-load_dotenv(os.path.join(os.getcwd(),'..','..','.env'))
+load_dotenv(os.path.join(os.getcwd(),'..','..','.env'),override=True)
 
 def generate_video_id(title):
     url = f"{os.getenv('CDN_API_URL')}/videos"
