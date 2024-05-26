@@ -20,13 +20,13 @@ from src.responses import *
 import librosa 
 
 from moviepy.editor import * 
-from moviepy.audio.AudioClip import AudioArrayClip
+
+from src.utils import * 
 
 from dotenv import load_dotenv
 import os 
 
-load_dotenv() 
-
+load_dotenv(os.path.join(os.getcwd(),'..','..','.env'))
 
 class BaseNodeClass: 
     def __init__(self,
@@ -45,7 +45,7 @@ class BaseNodeClass:
             self.chain = self.prompt | self.model | self.parser 
 
 
-class Artist(BaseNodeClass): 
+class Director(BaseNodeClass): 
     
     def __init__(self,model='dall-e-3',voice_model="nova"):
         self.wrapper = DallEAPIWrapper(api_key=os.getenv('OPENAI_API_KEY'),model=model)
@@ -80,28 +80,6 @@ class Artist(BaseNodeClass):
         print(data.shape)
         return {"prompt": prompt, "audio_file": data }
     
-    @staticmethod
-    def multithreaded_func_call(f,inputs): # takes in a function to be run in parallel over list of args and return results in an arry 
-        results = [] 
-        with concurrent.futures.ThreadPoolExecutor() as executor: 
-            future_to_url = {executor.submit(f,i):i for i in inputs}
-            for future in concurrent.futures.as_completed(future_to_url):
-                url = future_to_url[future]
-                try: 
-                    data = future.result()
-                    results.append(data)
-                except Exception as e: 
-                    print(e)
-        
-        return results 
-
-    @staticmethod
-    def audio_file_duration(audio_arr):
-        return int(librosa.get_duration(y=audio_arr,sr=44100))
-    
-    @staticmethod
-    def get_video_clip_size(clip): # assuming bit depth of 24 and fps of 24
-        return 24*clip.duration*clip.w*clip.h*3/1e6
 
 
     def compose_av(self, descriptions):
@@ -112,23 +90,31 @@ class Artist(BaseNodeClass):
 
         for description in descriptions:
             img = self.url_to_img(description.image_url)
-            screen_time = self.audio_file_duration(description.audio_file)
+            screen_time = audio_file_duration(description.audio_file)
             clip = ImageClip(img).set_duration(screen_time)
             video_clips.append(clip.crossfadein(TRANSITION_TIME))
 
+        video = concatenate_videoclips(video_clips, method="compose",)
+        filepath = generate_filepath('generated.mp4')
+        try: 
+            #video.preview()
+            video.write_videofile(filepath,fps=24)
+            total_size = get_video_clip_size(video)
+            print(f"Total size of video clips: {total_size:.2f} MB") # Print the total size of all video clips in MB
+        except Exception as e:
+            delete_tmpfile(filepath)
+            print(e)
+        return filepath 
 
-        video = concatenate_videoclips(video_clips, method="compose")
-        total_size = self.get_video_clip_size(video)
-        print(f"Total size of video clips: {total_size:.2f} MB") # Print the total size of all video clips in MB
-        #video.preview()
-        return video
+
+        
 
     def generate_audio(self,descriptions):
-        audio_files = self.multithreaded_func_call(self.audio_from_prompt,[d.story_section for d in descriptions])
+        audio_files = multithreaded_func_call(self.audio_from_prompt,[d.story_section for d in descriptions])
         return audio_files
     
     def generate_images(self,descriptions):
-        image_files = self.multithreaded_func_call(self.image_from_prompt,[d.image_description for d in descriptions])
+        image_files = multithreaded_func_call(self.image_from_prompt,[d.image_description for d in descriptions])
         return image_files
 
     def generate_image_audio_concurrent(self,descriptions): # todo: make the descriptions a state of this class that the various asynch calls mutate, because this is very ugly 

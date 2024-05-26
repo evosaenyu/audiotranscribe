@@ -1,6 +1,7 @@
 from fastapi import FastAPI, WebSocket
 from src.graph import AgentConstructor
 
+from src.utils import upload_video,delete_tmpfile
 app = FastAPI()
 
 @app.websocket("/generate")
@@ -9,8 +10,16 @@ async def websocket_endpoint(websocket: WebSocket):
     agent = AgentConstructor(ws=websocket) 
     state = await agent.generate(revision_limit=2)
     print(state)
-    video = agent.artist.compose_av(state["descriptions"])
-    await websocket.send_json({"status": 200, "generation": True,"response": state["story"]})
-    await websocket.close(code=1000, reason="request fulfilled")
+    video_filepath = agent.director.compose_av(state["descriptions"])
+    try: 
+        video_url = upload_video(video_filepath,state["story_request"])
+        await websocket.send_json({"status": 200, "generation": True,"response": state["story"],"video_url": video_url})
+        await websocket.close(code=1000, reason="request fulfilled")
+        
+    except Exception as e:
+        print(e)
+
+    delete_tmpfile(video_filepath)
+
 
 
