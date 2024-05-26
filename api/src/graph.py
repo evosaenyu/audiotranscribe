@@ -84,9 +84,10 @@ class AgentConstructor:
         self.graph = StateGraph(State)
         self.revisions = 0
 
-        for v,e in zip(["editor","constructor","critic","copywriter"],[self.editor,self.constructor,self.critic,self.copywriter]):
+        for v,e in zip(["editor","constructor","critic"],[self.editor,self.constructor,self.critic]):
             self.graph.add_node(v,e.chain)
     
+        self.graph.add_node("copywriter",self.copywriter.commission)
         self.graph.add_node("initializer",self.run_initializer)
         self.graph.add_node("director",self.director.invoke)
         self.graph.add_node("get_user_input",self.get_user_input if not user_input_fn else user_input_fn)

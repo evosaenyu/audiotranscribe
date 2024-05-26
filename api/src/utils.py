@@ -8,8 +8,30 @@ import requests
 import shutil 
 
 from dotenv import load_dotenv
+from math import ceil
 
 load_dotenv(os.path.join(os.getcwd(),'..','..','.env'),override=True)
+
+
+def chunk_into_n(lst, n):
+  size = ceil(len(lst) / n)
+  return list(
+    map(lambda x: lst[x * size:x * size + size],
+    list(range(n)))
+  )
+
+def await_video_status(vid):
+
+    url = f"{os.getenv('CDN_API_URL')}/videos/{vid}"
+    headers = {
+        'Content-Type': 'application/json',
+        'AccessKey': os.getenv('CDN_API_KEY')
+    }
+    status = -1 
+    while status < 4:
+        response = requests.get(url,headers=headers)
+        status = response.json()["status"] # Created = 0, Uploaded = 1, Processing = 2, Transcoding = 3, Finished = 4, Error = 5, UploadFailed = 6, Transcribing = 7
+    return status
 
 
 def generate_video_id(title):
@@ -35,6 +57,7 @@ def upload_video(filepath,title):
         data = f.read()
     response = requests.put(url,headers=headers,data=data)
     if response.json()["success"]: 
+        status = await_video_status(vid_id)
         return f"{os.getenv('CDN_STATIC_URL')}/{vid_id}/play_720p.mp4"
     raise Exception("error uploading video to CDN") 
     return ""
@@ -50,14 +73,19 @@ def generate_filepath(file,dir=os.getenv('TEMP_DIR','./tmpdir')):
 
 
 def multithreaded_func_call(f,inputs): # takes in a function to be run in parallel over list of args and return results in an arry 
-    results = [] 
+    results = [None]*len(inputs) 
+    input_idx_map = {str(a):i for i,a in enumerate(inputs)}
+    print('input idx map',input_idx_map)
     with concurrent.futures.ThreadPoolExecutor() as executor: 
-        future_to_url = {executor.submit(f,i):i for i in inputs}
-        for future in concurrent.futures.as_completed(future_to_url):
-            url = future_to_url[future]
+        future_to_input = {executor.submit(f,i):i for i in inputs}
+        for future in concurrent.futures.as_completed(future_to_input):
+            arg = future_to_input[future]
             try: 
+                print('for input: ',arg)
                 data = future.result()
-                results.append(data)
+                print('the results ',data)
+                idx = input_idx_map[str(arg)]
+                results[idx] = data
             except Exception as e: 
                 print(e)
     

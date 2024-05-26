@@ -119,9 +119,9 @@ class Director(BaseNodeClass):
     def generate_image_audio_concurrent(self,descriptions): # todo: make the descriptions a state of this class that the various asynch calls mutate, because this is very ugly 
         results = [None]*2
         with concurrent.futures.ThreadPoolExecutor() as executor: 
-            future_to_result = {executor.submit(f,descriptions): f for f in [self.generate_images,self.generate_audio]}
-            for future in concurrent.futures.as_completed(future_to_result):
-                result = future_to_result[future]
+            future_to_input = {executor.submit(f,descriptions): f for f in [self.generate_images,self.generate_audio]}
+            for future in concurrent.futures.as_completed(future_to_input):
+                input_func = future_to_input[future]
                 try: 
                     data = future.result()
                     results[1 if 'audio_file' in data[0].keys() else 0] = data 
@@ -135,15 +135,11 @@ class Director(BaseNodeClass):
     
     def invoke(self,state):
         descriptions = state["descriptions"]
-        img_prompt_idx_map = {d.image_description: i for i,d in enumerate(descriptions)}
-        audio_prompt_idx_map = {d.story_section: i for i,d in enumerate(descriptions)}
         image_urls, audio_files = self.generate_image_audio_concurrent(state["descriptions"])
         try: 
             for i in range(len(image_urls)):
-                im_idx = img_prompt_idx_map[image_urls[i]["prompt"]]
-                au_idx = audio_prompt_idx_map[audio_files[i]["prompt"]]
-                descriptions[im_idx].image_url = image_urls[i]["image_url"]
-                descriptions[au_idx].audio_file = audio_files[i]["audio_file"]
+                descriptions[i].image_url = image_urls[i]["image_url"]
+                descriptions[i].audio_file = audio_files[i]["audio_file"]
         except Exception as e:
             for f in audio_files: delete_tmpfile(f["audio_file"])
             print(e)
@@ -152,20 +148,39 @@ class Director(BaseNodeClass):
 
 
 class Copywriter(BaseNodeClass):
-    def __init__(self,story = '',num_images = os.getenv('MAX_IMGS')):
+    def __init__(self,story_section = '',num_images = int(os.getenv('MAX_IMGS'))):
         self.num_images = num_images
-        parser = PydanticOutputParser(pydantic_object=Descriptions)
+        parser = PydanticOutputParser(pydantic_object=DescriptionItem)
         super().__init__(parser=parser)
+
         self.prompt = PromptTemplate(template="""
-            You are an artist that takes children's stories and generates descriptions of backdrops that should be displayed 
-            while the following story is being narrated. You should return back a list (MAXIMUM LENGTH {num_images}) of the exact word for word sections of the story with a description of the
-            corresponding background image to be shown. Make sure the backdrop shows places and environments, but strictly NO humans, persons to be depicted in any of the image descriptions. 
-            here is the : {story} \n {format_instructions} \n
+            You are an artist that takes excerpts from children's stories and produces descriptions of backdrops that should be displayed 
+            while the story is being narrated. The description will be sent to an artist who will produce the images based on your description, 
+            so make sure to be as detailed as possible. Make sure the backdrop shows places and environments, but strictly NO humans, person, or writing,text, 
+            or captioning to be depicted in any of the image descriptions.
+            here is the story excerpt: \n {story_section} \n {format_instructions} \n
         """, 
-        input_variables=[story],
-        partial_variables={"format_instructions": self.format_instructions, "num_images": self.num_images})
+        input_variables=[story_section],
+        partial_variables={"format_instructions": self.format_instructions})
         self.init_chain()
-        self.chain |= dict 
+    
+    def splice_story(self,story):
+        SPLIT_CHAR = '.'
+        chunks = [s for s in story.split(SPLIT_CHAR) if len(s) > 1]
+        if len(chunks) <= self.num_images:
+            prompts = chunks 
+        else:
+            prompts = [(SPLIT_CHAR).join(c) for c in chunk_into_n(chunks,self.num_images)]
+        
+        return [p for p in prompts if len(p) > 1]
+            
+    
+    def commission(self,state):
+        prompts = self.splice_story(state["story"])
+        image_descriptions = multithreaded_func_call(self.chain.invoke,[{"story_section": p} for p in prompts])
+        print(image_descriptions)
+        return {"descriptions": image_descriptions}
+
 
 
 class Initializer(BaseNodeClass): 

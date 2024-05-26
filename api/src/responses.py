@@ -10,8 +10,8 @@ class terminationEnum(Enum):
     no = 'no'
 
 class DescriptionItem(BaseModel): 
-    story_section: str = Field(description="the exact section of the story to be read while the related image_description is showing") # hmm.. 
     image_description: str = Field(description="extremely vividly detailed description of the backdrop")
+    story_section: Optional[str] = Field(description="the exact section of the story to be read while the related image_description is showing") # hmm.. 
     image_url: Optional[str] = Field(default="",description= "the url of the image generated using the image description")
     audio_file: Optional[object]
 
