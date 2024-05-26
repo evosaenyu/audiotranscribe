@@ -25,7 +25,7 @@ from src.utils import *
 from dotenv import load_dotenv
 import os 
 
-load_dotenv(os.path.join(os.getcwd(),'..','..','.env'),override=True)
+load_dotenv(os.path.join(os.getcwd(),'..','.env'),override=True)
 
 class BaseNodeClass: 
     def __init__(self,
@@ -55,7 +55,8 @@ class Director(BaseNodeClass):
     def url_to_img(url):
         req = urllib.request.urlopen(url)
         arr = np.asarray(bytearray(req.read()), dtype=np.uint8)
-        img = cv2.imdecode(arr, -1)
+        img = cv2.imdecode(arr, cv2.IMREAD_COLOR)
+        img= cv2.cvtColor(img , cv2.COLOR_BGR2RGB)
         return img 
     
 
@@ -82,8 +83,6 @@ class Director(BaseNodeClass):
     def audio_from_prompt(self,prompt):
         audio_file = self.generate_speech_audio(prompt)
         return {"prompt": prompt, "audio_file": audio_file }
-    
-
 
     def compose_av(self, descriptions):
         video_clips = []
@@ -94,23 +93,20 @@ class Director(BaseNodeClass):
         for description in descriptions:
             img = self.url_to_img(description.image_url)
             screen_time = audio_file_duration(description.audio_file)
-            clip = ImageClip(img).set_duration(screen_time)
+            audioclip = AudioFileClip(description.audio_file,fps=44100) # change framerate to not be hardcoded 
+            clip = ImageClip(img).set_duration(screen_time).set_audio(audioclip)
             video_clips.append(clip.crossfadein(TRANSITION_TIME))
 
-        video = concatenate_videoclips(video_clips, method="compose",)
+        video = concatenate_videoclips(video_clips, method="compose")
         filepath = generate_filepath('generated.mp4')
         try: 
             #video.preview()
-            video.write_videofile(filepath,fps=24)
+            video.write_videofile(filepath,fps=24,threads=8)
             total_size = get_video_clip_size(video)
             print(f"Total size of video clips: {total_size:.2f} MB") # Print the total size of all video clips in MB
         except Exception as e:
-            delete_tmpfile(filepath)
             print(e)
         return filepath 
-
-
-        
 
     def generate_audio(self,descriptions):
         audio_files = multithreaded_func_call(self.audio_from_prompt,[d.story_section for d in descriptions])
@@ -142,12 +138,15 @@ class Director(BaseNodeClass):
         img_prompt_idx_map = {d.image_description: i for i,d in enumerate(descriptions)}
         audio_prompt_idx_map = {d.story_section: i for i,d in enumerate(descriptions)}
         image_urls, audio_files = self.generate_image_audio_concurrent(state["descriptions"])
-        for i in range(len(image_urls)):
-            im_idx = img_prompt_idx_map[image_urls[i]["prompt"]]
-            au_idx = audio_prompt_idx_map[audio_files[i]["prompt"]]
-            descriptions[im_idx].image_url = image_urls[i]["image_url"]
-            descriptions[au_idx].audio_file = audio_files[i]["audio_file"]
-
+        try: 
+            for i in range(len(image_urls)):
+                im_idx = img_prompt_idx_map[image_urls[i]["prompt"]]
+                au_idx = audio_prompt_idx_map[audio_files[i]["prompt"]]
+                descriptions[im_idx].image_url = image_urls[i]["image_url"]
+                descriptions[au_idx].audio_file = audio_files[i]["audio_file"]
+        except Exception as e:
+            for f in audio_files: delete_tmpfile(f["audio_file"])
+            print(e)
         return {"descriptions":descriptions}
 
 

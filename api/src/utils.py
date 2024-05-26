@@ -1,5 +1,5 @@
 import concurrent.futures
-import librosa 
+from mutagen.mp3 import MP3 
 import tempfile 
 import os 
 import json 
@@ -10,6 +10,7 @@ import shutil
 from dotenv import load_dotenv
 
 load_dotenv(os.path.join(os.getcwd(),'..','..','.env'),override=True)
+
 
 def generate_video_id(title):
     url = f"{os.getenv('CDN_API_URL')}/videos"
@@ -34,7 +35,7 @@ def upload_video(filepath,title):
         data = f.read()
     response = requests.put(url,headers=headers,data=data)
     if response.json()["success"]: 
-        return f"{os.getenv('CDN_STATIC_URL')}/{vid_id}"
+        return f"{os.getenv('CDN_STATIC_URL')}/{vid_id}/play_720p.mp4"
     raise Exception("error uploading video to CDN") 
     return ""
 
@@ -43,8 +44,9 @@ def delete_tmpfile(filepath):
     shutil.rmtree(tmpdir)
 
 
-def generate_filepath(file):
-    return os.path.join(tempfile.mkdtemp(),file)
+def generate_filepath(file,dir=os.getenv('TEMP_DIR','./tmpdir')):
+    if not os.path.exists(dir): os.mkdir(dir)
+    return os.path.join(tempfile.mkdtemp(dir=dir),file)
 
 
 def multithreaded_func_call(f,inputs): # takes in a function to be run in parallel over list of args and return results in an arry 
@@ -61,8 +63,8 @@ def multithreaded_func_call(f,inputs): # takes in a function to be run in parall
     
     return results 
 
-def audio_file_duration(audio_arr):
-    return int(librosa.get_duration(y=audio_arr,sr=44100))
+def audio_file_duration(audio_file):
+    return int(MP3(audio_file).info.length)
 
 def get_video_clip_size(clip): # assuming bit depth of 24 and fps of 24
     return 24*clip.duration*clip.w*clip.h*3/1e6

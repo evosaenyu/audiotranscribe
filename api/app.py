@@ -19,7 +19,14 @@ async def websocket_endpoint(websocket: WebSocket):
     except Exception as e:
         print(e)
 
-    delete_tmpfile(video_filepath)
+    try: 
+        delete_tmpfile(video_filepath)
+    except Exception as e: 
+        print(e)
+    try: 
+        for g in state["descriptions"]: delete_tmpfile(g.audio_file)
+    except Exception as e: 
+        print(e)
 
 
 

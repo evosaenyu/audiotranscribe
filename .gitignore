@@ -12,3 +12,4 @@ etc/
 *.mp3
 *.wav
 *.log
+tmpdir/*
