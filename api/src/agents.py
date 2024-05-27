@@ -95,7 +95,7 @@ class Director(BaseNodeClass):
         audio_file = self.generate_speech_audio(prompt)
         return {"prompt": prompt, "audio_file": audio_file }
 
-    def compose_av(self, descriptions):
+    async def compose_av(self, descriptions):
         video_clips = []
         audio_clips = []
         TRANSITION_TIME = 2
@@ -120,7 +120,7 @@ class Director(BaseNodeClass):
         print("video compiled, writing")
 
         outfilepath = vidwrite(filepath,[f for f in video.iter_frames(fps=24)],audio_filepath,framerate=24)
-        self.ws.send_json({"status": 200, "generation": False, "response": "adding finishing touches..." })
+        if self.ws: await self.ws.send_json({"status": 200, "generation": False, "response": "adding finishing touches..." })
         #compressed_filepath = compress_video(filepath,os.path.getsize(filepath)/50) # compression ratio
         #delete_tmpfile(filepath)
         total_size = get_video_clip_size(video)
@@ -147,13 +147,13 @@ class Director(BaseNodeClass):
     
         return results # results[0] is result of generate_images, results[1] is result of generate_audio
     
-    def invoke(self,state):
+    async def invoke(self,state):
         descriptions = state["descriptions"]
         image_urls, audio_files = self.generate_image_audio_concurrent(state["descriptions"])
         for i in range(len(image_urls)):
             descriptions[i].image_url = image_urls[i]["image_url"]
             descriptions[i].audio_file = audio_files[i]["audio_file"]
-        self.ws.send_json({"status": 200, "generation": False, "response": "filling in the plot devices..." })
+        if self.ws: await self.ws.send_json({"status": 200, "generation": False, "response": "filling in the plot devices..." })
         return {"descriptions":descriptions}
 
 
@@ -187,10 +187,10 @@ class Copywriter(BaseNodeClass):
     def generate_descriptions(self,prompt):
         return self.chain.invoke({"story_section": prompt})
     
-    def commission(self,state):
+    async def commission(self,state):
         prompts = self.splice_story(state["story"])
         image_descriptions = multithreaded_func_call(self.generate_descriptions,prompts)
-        self.ws.send_json({"status": 200, "generation": False, "response": "bringing story to life..." })
+        if self.ws: await self.ws.send_json({"status": 200, "generation": False, "response": "bringing story to life..." })
         return {"descriptions": image_descriptions}
 
 
