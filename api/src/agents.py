@@ -50,10 +50,11 @@ class BaseNodeClass:
 
 class Director(BaseNodeClass): 
     
-    def __init__(self,model='dall-e-3',voice_model="nova"):
+    def __init__(self,model='dall-e-3',voice_model="nova",ws=None):
         self.client = ElevenLabs(api_key=os.getenv('XI_API_KEY')) # Defaults to ELEVEN_API_KEY)
         self.voice = voice_model
         self.openai_client = OpenAI(api_key=os.getenv('OPENAI_API_KEY'))
+        self.ws = ws 
     
     @staticmethod
     def url_to_img(url):
@@ -117,7 +118,9 @@ class Director(BaseNodeClass):
         #video.preview()
         #video.write_videofile(filepath,fps=24,threads=8)
         print("video compiled, writing")
+
         outfilepath = vidwrite(filepath,[f for f in video.iter_frames(fps=24)],audio_filepath,framerate=24)
+        self.ws.send_json({"status": 200, "generation": False, "response": "adding finishing touches..." })
         #compressed_filepath = compress_video(filepath,os.path.getsize(filepath)/50) # compression ratio
         #delete_tmpfile(filepath)
         total_size = get_video_clip_size(video)
@@ -150,14 +153,15 @@ class Director(BaseNodeClass):
         for i in range(len(image_urls)):
             descriptions[i].image_url = image_urls[i]["image_url"]
             descriptions[i].audio_file = audio_files[i]["audio_file"]
-
+        self.ws.send_json({"status": 200, "generation": False, "response": "filling in the plot devices..." })
         return {"descriptions":descriptions}
 
 
 
 class Copywriter(BaseNodeClass):
-    def __init__(self,story_section = '',num_images = int(os.getenv('MAX_IMGS'))):
+    def __init__(self,story_section = '',num_images = int(os.getenv('MAX_IMGS')),ws=None):
         self.num_images = num_images
+        self.ws = ws 
         parser = PydanticOutputParser(pydantic_object=DescriptionItem)
         super().__init__(parser=parser)
 
@@ -186,6 +190,7 @@ class Copywriter(BaseNodeClass):
     def commission(self,state):
         prompts = self.splice_story(state["story"])
         image_descriptions = multithreaded_func_call(self.generate_descriptions,prompts)
+        self.ws.send_json({"status": 200, "generation": False, "response": "bringing story to life..." })
         return {"descriptions": image_descriptions}
 
 

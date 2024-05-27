@@ -28,9 +28,9 @@ class AgentConstructor:
         self.constructor = Constructor()
         self.critic = Critic()
         self.editor = Editor()
-        self.copywriter = Copywriter()
-        self.director = Director() 
-        # self.construct_graph()
+        self.copywriter = Copywriter(ws=ws)
+        self.director = Director(ws=ws) 
+        self.construct_graph()
         self.revisions = 0
         self.rev_limit = 3
         self.ws = ws 
