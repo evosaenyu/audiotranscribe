@@ -68,11 +68,11 @@ class Director(BaseNodeClass):
         # Generate the speech audio file
         filepath = generate_filepath('speech.mp3')
 
+        _ = self.client.generate()
         audio = self.client.generate(
             text=prompt,
-            voice=voice,
-            model="eleven_monolingual_v1",
-
+            voice="zCP9CbYitekLThIz72yG",
+            model="eleven_turbo_v2"
             )
         save(audio,filepath)
 

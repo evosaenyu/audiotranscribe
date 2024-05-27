@@ -71,7 +71,10 @@ def delete_tmpfile(filepath):
 
 
 def generate_filepath(file,dir=os.getenv('TEMP_DIR','./tmpdir')):
-    if not os.path.exists(dir): os.mkdir(dir)
+    try: 
+        os.mkdir(dir)
+    except FileExistsError as e:
+        pass 
     return os.path.join(tempfile.mkdtemp(dir=dir),file)
 
 
