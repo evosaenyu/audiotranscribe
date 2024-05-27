@@ -109,19 +109,16 @@ class Director(BaseNodeClass):
             audio_clips.append(audioclip)
             video_clips.append(clip.crossfadein(TRANSITION_TIME))
 
-        track = CompositeAudioClip(audio_clips)
+        track = concatenate_audioclips(audio_clips)
         video = concatenate_videoclips(video_clips, method="compose")
         video.audio = track 
         filepath = generate_filepath('generated.mp4')
         audio_filepath = generate_filepath('soundtrack.mp3')
         track.write_audiofile(audio_filepath,fps=sample_rate)
-        compressed_filepath=""
         #video.preview()
         #video.write_videofile(filepath,fps=24,threads=8)
         print("video compiled, writing")
         outfilepath = vidwrite(filepath,[f for f in video.iter_frames(fps=24)],audio_filepath,framerate=24)
-        delete_tmpfile(filepath)
-        delete_tmpfile(audio_filepath)
         #compressed_filepath = compress_video(filepath,os.path.getsize(filepath)/50) # compression ratio
         #delete_tmpfile(filepath)
         total_size = get_video_clip_size(video)

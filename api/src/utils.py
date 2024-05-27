@@ -155,5 +155,4 @@ def vidwrite(fn, images, audio,framerate=60, vcodec='libx264'):
     input_audio = ffmpeg.input(audio)
     output_file_path = "/".join(fn.split("/")[:-1] + ['compressed.mp4'])
     ffmpeg.concat(input_video, input_audio, v=1, a=1).output(output_file_path).run() 
-    delete_tmpfile(fn)
     return output_file_path
