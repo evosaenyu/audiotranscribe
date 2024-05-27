@@ -70,7 +70,7 @@ class Director(BaseNodeClass):
 
         audio = self.client.generate(
             text=prompt,
-            voice="zCP9CbYitekLThIz72yG",
+            voice="DcrMdhdQLQ7HpEOdsWnX",
             model="eleven_turbo_v2"
             )
         save(audio,filepath)
