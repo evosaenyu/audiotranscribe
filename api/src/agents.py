@@ -68,7 +68,6 @@ class Director(BaseNodeClass):
         # Generate the speech audio file
         filepath = generate_filepath('speech.mp3')
 
-        _ = self.client.generate()
         audio = self.client.generate(
             text=prompt,
             voice="zCP9CbYitekLThIz72yG",
