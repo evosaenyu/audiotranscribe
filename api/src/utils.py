@@ -129,18 +129,19 @@ def compress_video(video_full_path,target_size):
 
     return output_file_path
 
-def vidwrite(fn, images, framerate=60, vcodec='libx264'):
+def vidwrite(fn, images, audio,framerate=60, vcodec='libx264'):
     if not isinstance(images, np.ndarray):
         images = np.asarray(images)
     n,height,width,channels = images.shape
     process = (
         ffmpeg
             .input('pipe:', format='rawvideo', pix_fmt='rgb24', s='{}x{}'.format(width, height),r=f'{framerate}')
-            .output(fn, pix_fmt='yuv420p',**{'c:v': 'libx264','pass': 1,'f': 'mp4'}) #'b:v': video_bitrate,
+            .output(fn, vcodec=vcodec,pix_fmt='yuv420p',**{'c:v': 'libx264','pass': 1,'f': 'mp4'}) #'b:v': video_bitrate,
             # .output(fn, pix_fmt='yuv420p', vcodec=vcodec, r=framerate)
             .overwrite_output()
             .run_async(pipe_stdin=True)
     )
+
     for frame in images:
         process.stdin.write(
             frame
@@ -149,3 +150,10 @@ def vidwrite(fn, images, framerate=60, vcodec='libx264'):
         )
     process.stdin.close()
     process.wait()
+    input_video = ffmpeg.input(fn)
+
+    input_audio = ffmpeg.input(audio)
+    output_file_path = "/".join(fn.split("/")[:-1] + ['compressed.mp4'])
+    ffmpeg.concat(input_video, input_audio, v=1, a=1).output(output_file_path).run() 
+    delete_tmpfile(fn)
+    return output_file_path

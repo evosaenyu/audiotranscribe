@@ -116,7 +116,8 @@ class Director(BaseNodeClass):
         compressed_filepath=""
         #video.preview()
         #video.write_videofile(filepath,fps=24,threads=8)
-        vidwrite(filepath,[f for f in video.iter_frames(fps=24)],framerate=24)
+        print("video compiled, writing")
+        filepath = vidwrite(filepath,[f for f in video.iter_frames(fps=24)],framerate=24)
         #compressed_filepath = compress_video(filepath,os.path.getsize(filepath)/50) # compression ratio
         #delete_tmpfile(filepath)
         total_size = get_video_clip_size(video)
