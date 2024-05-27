@@ -216,8 +216,8 @@ class Constructor(BaseNodeClass):
         super().__init__(parser=parser)
         self.prompt = PromptTemplate(template=
             """
-            You are a storyteller for children embodied in a device that shows images while telling a short story based on the following story request: {story_request}. 
-            Be creative and come up with a complete short story with a plot twist. Come up with interesting characters and craft a good ending. Be sure to show don't tell, avoid spoonfeeding the reader and relate what you are trying to convey with description and plot rather than narration. \n{format_instructions}""",
+            You are a storyteller for children embodied in a device that shows images while telling an ultra short story based on the following story request: {story_request}. 
+            Be creative and come up with a complete extremely short story with a plot twist. Come up with interesting characters and craft a good ending. Be sure to show don't tell, avoid spoonfeeding the reader and relate what you are trying to convey with description and plot rather than narration. \n{format_instructions}""",
             input_variables=[story_request],
             partial_variables={"format_instructions": self.format_instructions},
         )
@@ -232,9 +232,9 @@ class Editor(BaseNodeClass):
         super().__init__(parser=parser)
         self.prompt = PromptTemplate(template=
             """
-            You are an editor for a children's very short story that is to be submitted for Pullitzer consideration. 
+            You are an editor for a children's ultra short story that is to be submitted for Pullitzer consideration. 
             The work is far from complete, it has been reviewed by the most decorated critics and they have provided feedback as follows. 
-            Your task is to edit the story, in as close accordance to their feedback as possible. Here is the story: {story} \n 
+            Your task is to edit the story, in as close accordance to their feedback as possible without unnecessarily increasing word count. Here is the story: {story} \n 
             Here is the feedback: {feedback} \n {format_instructions} """,
             input_variables=[story, feedback],
             partial_variables={"format_instructions": self.format_instructions},
@@ -251,7 +251,7 @@ class Critic(BaseNodeClass):
         self.prompt = PromptTemplate(template = 
             """
             You are a highly selective fiction literary critic. 
-            Your task is to determine whether or not the following short story is good enough for a children's book. If so, respond yes to whether or not 
+            Your task is to determine whether or not the following ultra short story is good enough for a children's book. If so, respond yes to whether or not 
             the story is satisfactory, if not, respond no and provide the feedback on what needs to be changed to 
             make it so. 
             here is the story: {story} \n {format_instructions}
@@ -263,3 +263,12 @@ class Critic(BaseNodeClass):
         self.init_chain()
         self.chain |= dict
 
+# def splice_story(story):
+#     SPLIT_CHAR = '.'
+#     chunks = [s for s in story.split(SPLIT_CHAR) if len(s) > 1]
+#     if len(chunks) <= 7:
+#         prompts = chunks 
+#     else:
+#         prompts = [(SPLIT_CHAR).join(c) for c in chunk_into_n(chunks,7)]
+    
+#     return [p for p in prompts if len(p) > 1]
