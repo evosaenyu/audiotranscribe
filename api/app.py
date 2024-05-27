@@ -11,22 +11,15 @@ async def websocket_endpoint(websocket: WebSocket):
     state = await agent.generate(revision_limit=2)
     print(state)
     video_filepath = agent.director.compose_av(state["descriptions"])
-    try: 
-        video_url = upload_video(video_filepath,state["story_request"])
-        await websocket.send_json({"status": 200, "generation": True,"response": state["story"],"video_url": video_url})
-        await websocket.close(code=1000, reason="request fulfilled")
-        
-    except Exception as e:
-        print(e)
 
-    try: 
-        delete_tmpfile(video_filepath)
-    except Exception as e: 
-        print(e)
-    try: 
-        for g in state["descriptions"]: delete_tmpfile(g.audio_file)
-    except Exception as e: 
-        print(e)
+    video_url = upload_video(video_filepath,state["story_request"])
+    await websocket.send_json({"status": 200, "generation": True,"response": state["story"],"video_url": video_url})
+    await websocket.close(code=1000, reason="request fulfilled")
+        
+
+    delete_tmpfile(video_filepath)
+    for g in state["descriptions"]: delete_tmpfile(g.audio_file)
+
 
 
 

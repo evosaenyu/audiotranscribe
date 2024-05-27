@@ -6,3 +6,4 @@ moviepy
 opencv-python
 ffmpeg-python
 mutagen
+elevenlabs

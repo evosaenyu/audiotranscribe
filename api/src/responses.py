@@ -11,9 +11,9 @@ class terminationEnum(Enum):
 
 class DescriptionItem(BaseModel): 
     image_description: str = Field(description="extremely vividly detailed description of the backdrop")
-    story_section: Optional[str] = Field(description="the exact section of the story to be read while the related image_description is showing") # hmm.. 
+    story_section: Optional[str] = Field(default= "",description="the exact section of the story to be read while the related image_description is showing") # hmm.. 
     image_url: Optional[str] = Field(default="",description= "the url of the image generated using the image description")
-    audio_file: Optional[object]
+    audio_file: Optional[str] = Field(default="",description= "the path of the audio file generated using the story description") 
 
 class Descriptions(BaseModel):
     descriptions: List[DescriptionItem] = Field(description="a list of descriptions, each one an extremely vividly detailed description of the backdrop")

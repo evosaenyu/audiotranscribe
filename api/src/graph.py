@@ -19,7 +19,7 @@ class State(TypedDict):
     story: StoryObject # string the current story 
     satisfactory: CriticResponse
     feedback: CriticResponse
-    descriptions: Descriptions
+    descriptions: List[DescriptionItem]
 
 class AgentConstructor: 
 
