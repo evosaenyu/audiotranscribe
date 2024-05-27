@@ -113,17 +113,21 @@ class Director(BaseNodeClass):
         video = concatenate_videoclips(video_clips, method="compose")
         video.audio = track 
         filepath = generate_filepath('generated.mp4')
+        audio_filepath = generate_filepath('soundtrack.mp3')
+        track.write_audiofile(audio_filepath)
         compressed_filepath=""
         #video.preview()
         #video.write_videofile(filepath,fps=24,threads=8)
         print("video compiled, writing")
-        filepath = vidwrite(filepath,[f for f in video.iter_frames(fps=24)],framerate=24)
+        outfilepath = vidwrite(filepath,[f for f in video.iter_frames(fps=24)],audio_filepath,framerate=24)
+        delete_tmpfile(filepath)
+        delete_tmpfile(audio_filepath)
         #compressed_filepath = compress_video(filepath,os.path.getsize(filepath)/50) # compression ratio
         #delete_tmpfile(filepath)
         total_size = get_video_clip_size(video)
         print(f"Total size of video clips: {total_size:.2f} MB") # Print the total size of all video clips in MB
 
-        return filepath 
+        return outfilepath 
 
     def generate_audio(self,descriptions):
         audio_files = multithreaded_func_call(self.audio_from_prompt,[d.story_section for d in descriptions],workers=2) #rate limit from api 
