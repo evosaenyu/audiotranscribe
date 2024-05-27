@@ -30,7 +30,7 @@ class AgentConstructor:
         self.editor = Editor()
         self.copywriter = Copywriter(ws=ws)
         self.director = Director(ws=ws) 
-        self.construct_graph()
+        #self.construct_graph()
         self.revisions = 0
         self.rev_limit = 3
         self.ws = ws 
