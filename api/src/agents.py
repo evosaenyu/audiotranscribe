@@ -114,7 +114,7 @@ class Director(BaseNodeClass):
         video.audio = track 
         filepath = generate_filepath('generated.mp4')
         audio_filepath = generate_filepath('soundtrack.mp3')
-        track.write_audiofile(audio_filepath)
+        track.write_audiofile(audio_filepath,fps=sample_rate)
         compressed_filepath=""
         #video.preview()
         #video.write_videofile(filepath,fps=24,threads=8)
