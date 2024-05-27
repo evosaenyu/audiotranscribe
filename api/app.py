@@ -40,7 +40,7 @@ async def websocket_endpoint(websocket: WebSocket):
 
     video_url = upload_video(video_filepath,state["story_request"])
     await manager.send_personal_message({"status": 200, "generation": True,"response": state["story"],"video_url": video_url},websocket) 
-    await manager.disconnect(websocket) 
+    manager.disconnect(websocket) 
         
 
     delete_tmpfile(video_filepath)
