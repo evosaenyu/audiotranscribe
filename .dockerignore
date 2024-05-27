@@ -6,5 +6,7 @@ share/*
 include/* 
 pyvenv.cfg
 .DS_Store
-.env
 .venv
+**/tmpdir/*
+**.log
+**.mbtree

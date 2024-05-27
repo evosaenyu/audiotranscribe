@@ -1,5 +1,7 @@
 fastapi
 uvicorn
+langchain
+langchain-community
 langgraph
 langchain_openai
 moviepy 
@@ -7,3 +9,7 @@ opencv-python
 ffmpeg-python
 mutagen
 elevenlabs
+torch 
+numpy 
+openai 
+python-dotenv 

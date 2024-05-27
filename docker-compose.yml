@@ -1,0 +1,34 @@
+services:
+  api:
+    image: storyteller_api
+    build:
+      context: .
+      dockerfile: api.Dockerfile
+    container_name: api
+    environment:
+      DB_URL: db:5432
+    ports:
+      - '8000:8000'
+    networks:
+      - app 
+    restart: unless-stopped
+
+  postgres:
+    container_name: db
+    image: postgres
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+    volumes:
+       - storyteller_postgres:/data/postgres
+    ports:
+      - "5432:5432"
+    networks:
+      - app
+    restart: unless-stopped
+
+ 
+volumes:
+    storyteller_postgres:
+networks:
+  app:
