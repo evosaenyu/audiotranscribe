@@ -136,7 +136,7 @@ def vidwrite(fn, images, framerate=60, vcodec='libx264'):
     process = (
         ffmpeg
             .input('pipe:', format='rawvideo', pix_fmt='rgb24', s='{}x{}'.format(width, height),r=f'{framerate}')
-            .output(fn, pix_fmt='yuv420p',multipass=2,**{'c:v': 'libx264','f': 'mp4'}) #'b:v': video_bitrate,
+            .output(fn, pix_fmt='yuv420p',**{'c:v': 'libx264','pass': 1,'f': 'mp4'}) #'b:v': video_bitrate,
             # .output(fn, pix_fmt='yuv420p', vcodec=vcodec, r=framerate)
             .overwrite_output()
             .run_async(pipe_stdin=True)
