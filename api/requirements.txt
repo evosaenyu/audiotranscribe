@@ -12,4 +12,8 @@ elevenlabs
 torch 
 numpy 
 openai 
-python-dotenv 
+python-dotenv
+sqlalchemy 
+databases 
+asyncpg 
+psycopg2-binary

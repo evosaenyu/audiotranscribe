@@ -98,7 +98,7 @@ class Director(BaseNodeClass):
     async def compose_av(self, descriptions):
         video_clips = []
         audio_clips = []
-        TRANSITION_TIME = 2
+        TRANSITION_TIME = 1
         total_size = 0
 
         for description in descriptions:
@@ -107,7 +107,7 @@ class Director(BaseNodeClass):
             audioclip = AudioFileClip(description.audio_file,fps=sample_rate) # change framerate to not be hardcoded 
             clip = ImageClip(img).set_duration(screen_time)
             audio_clips.append(audioclip)
-            video_clips.append(clip.crossfadein(TRANSITION_TIME))
+            video_clips.append(clip.crossfadeout(TRANSITION_TIME).crossfadein(TRANSITION_TIME))
 
         track = concatenate_audioclips(audio_clips)
         video = concatenate_videoclips(video_clips, method="compose")
@@ -115,8 +115,6 @@ class Director(BaseNodeClass):
         filepath = generate_filepath('generated.mp4')
         audio_filepath = generate_filepath('soundtrack.mp3')
         track.write_audiofile(audio_filepath,fps=sample_rate)
-        #video.preview()
-        #video.write_videofile(filepath,fps=24,threads=8)
         print("video compiled, writing")
 
         outfilepath = vidwrite(filepath,[f for f in video.iter_frames(fps=24)],audio_filepath,framerate=24)

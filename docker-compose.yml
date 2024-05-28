@@ -6,7 +6,9 @@ services:
       dockerfile: api.Dockerfile
     container_name: api
     environment:
-      DB_URL: db:5432
+      PGUSER: ${POSTGRES_USER:-postgres}
+      PGPWD: ${POSTGRES_PASSWORD:-postgres} 
+      DB_URL: db:5432/storyteller
     ports:
       - '8000:8000'
     networks:
@@ -19,6 +21,7 @@ services:
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-postgres}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: storyteller
     volumes:
        - storyteller_postgres:/data/postgres
     ports:

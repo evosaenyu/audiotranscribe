@@ -1,0 +1,6 @@
+
+
+
+story = """In the shimmering waters of the Caribbean, Captain Silas and his crew of rough pirates closed in on a merchant ship, flags waving menacingly. As they prepared to board, a small figure leapt from the merchant ship onto Silas's deck, a sword gleaming in the sun. 'I seek the legendary Captain Silas!' the figure shouted. Expecting a fearsome warrior, Silas and his crew burst into laughter upon seeing the young girl before them, no older than ten. Undeterred, she challenged Silas to a duel. With a smirk, Silas accepted, thinking it a light-hearted diversion. The duel began, and to everyone's astonishment, the girl's blade flashed like lightning, pressing Silas back step by step. Gasps filled the air as the girl disarmed Silas, holding her sword to his throat. 'I am Isla, your daughter,' she declared, her eyes fierce yet playful. Silas, in shock, dropped to his knees, recognizing the locket around her neck – a gift to a love lost long ago. The crew cheered, welcoming their new young captain. From that day, Isla sailed not as a pirate, but as a guardian of the seas, her proud father by her side."""
+
+video_url = "https://vz-eebc051c-859.b-cdn.net//438e4d49-58e8-4d05-a5c3-f427e1fd473a/play_720p.mp4"
