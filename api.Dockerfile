@@ -8,6 +8,7 @@ RUN apt-get update && apt-get install -y \
     build-essential \
     curl \
     ffmpeg libsm6 libxext6 \
+    libmp3lame0 \
     software-properties-common \
     git \
     && rm -rf /var/lib/apt/lists/*
